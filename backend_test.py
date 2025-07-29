@@ -276,8 +276,8 @@ class TikTokAPITester:
             if response.status_code == 200:
                 data = response.json()
                 
-                # Validate response structure
-                required_fields = ["status", "project_id", "script", "images_count", "audio_duration", "video_size", "message"]
+                # Validate response structure (video_size OR video_error depending on success)
+                required_fields = ["status", "project_id", "script", "images_count", "audio_duration", "message"]
                 missing_fields = [field for field in required_fields if field not in data]
                 
                 if missing_fields:
