@@ -363,10 +363,10 @@ async def generate_voice(script_id: str):
             text_to_speak = script_obj.script_text
             
             # Generate audio
-            audio_generator = await client.text_to_speech.generate(
+            audio_generator = await client.text_to_speech.convert(
                 text=text_to_speak,
                 voice_id=selected_voice_id,
-                model="eleven_multilingual_v2",  # Best for French
+                model_id="eleven_multilingual_v2",  # Best for French
                 voice_settings={
                     "stability": 0.5,
                     "similarity_boost": 0.8,
