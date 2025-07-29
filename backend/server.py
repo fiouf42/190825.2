@@ -401,8 +401,95 @@ async def generate_script(request: VideoGenerationRequest):
         logger.error(f"Error generating script: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating script: {str(e)}")
 
+@api_router.post("/test-mock-pipeline")
+async def test_mock_pipeline(request: VideoGenerationRequest):
+    """Test complete pipeline with mock data before using real APIs"""
+    try:
+        logger.info("Testing complete pipeline with mock data")
+        
+        # Step 1: Generate mock script
+        script_response = await generate_script(request)
+        script_id = script_response.id
+        logger.info(f"✅ Mock script generated: {script_id}")
+        
+        # Step 2: Generate mock images
+        images_response = await generate_images(script_id)
+        logger.info(f"✅ Mock images generated: {images_response['total_generated']} images")
+        
+        # Step 3: Generate mock voice (using real API but simple test)
+        mock_audio_data = get_mock_audio_data()
+        
+        # Create mock audio object
+        audio_obj = GeneratedAudio(
+            script_id=script_id,
+            audio_base64=mock_audio_data,
+            voice_id="mock_voice",
+            duration=30.0
+        )
+        
+        await db.audio.insert_one(audio_obj.dict())
+        logger.info(f"✅ Mock audio generated: {audio_obj.id}")
+        
+        # Step 4: Create project
+        project_obj = VideoProject(
+            original_prompt=request.prompt,
+            duration=request.duration,
+            script_id=script_id,
+            image_ids=[img.id for img in images_response["images"]],
+            status="mock_testing"
+        )
+        
+        await db.projects.insert_one(project_obj.dict())
+        logger.info(f"✅ Mock project created: {project_obj.id}")
+        
+        # Step 5: Test video assembly with mock data
+        try:
+            video_base64 = await assemble_video(
+                project_id=project_obj.id,
+                images=images_response["images"],
+                audio_base64=mock_audio_data,
+                script_text=script_response.script_text,
+                duration=30.0
+            )
+            logger.info(f"✅ Mock video assembled: {len(video_base64)} chars")
+            
+            # Save video result
+            video_result = VideoAssemblyResult(
+                project_id=project_obj.id,
+                video_base64=video_base64,
+                duration=30.0
+            )
+            
+            await db.videos.insert_one(video_result.dict())
+            
+            return {
+                "status": "mock_test_success",
+                "project_id": project_obj.id,
+                "script": script_response,
+                "images_count": len(images_response["images"]),
+                "audio_duration": 30.0,
+                "video_size": len(video_base64),
+                "message": "Pipeline mock test completed successfully. Ready for real API testing."
+            }
+            
+        except Exception as video_error:
+            logger.error(f"Video assembly failed: {str(video_error)}")
+            return {
+                "status": "mock_test_partial",
+                "project_id": project_obj.id,
+                "script": script_response,
+                "images_count": len(images_response["images"]),
+                "audio_duration": 30.0,
+                "video_error": str(video_error),
+                "message": "Script and images work, video assembly needs fixing."
+            }
+        
+    except Exception as e:
+        logger.error(f"Error in mock pipeline test: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Mock pipeline test failed: {str(e)}")
+
 @api_router.post("/generate-voice")
-async def generate_voice(script_id: str):
+async def generate_voice(script_id: str, use_real_api: bool = False):
     """Generate voice narration from script using ElevenLabs"""
     try:
         # Get script from database
