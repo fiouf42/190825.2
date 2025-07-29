@@ -436,6 +436,8 @@ async def get_available_voices():
     except Exception as e:
         logger.error(f"Error fetching voices: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error fetching voices: {str(e)}")
+
+@api_router.post("/generate-images")
 async def generate_images(script_id: str):
     try:
         # Get script from database
