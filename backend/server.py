@@ -250,6 +250,27 @@ async def get_project(project_id: str):
         # Get images
         images_data = await db.images.find({"id": {"$in": project_data["image_ids"]}}).to_list(1000)
         
+        # Convert ObjectId to string for JSON serialization
+        def convert_objectid(data):
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if key == "_id" and hasattr(value, '__str__'):
+                        data[key] = str(value)
+                    elif isinstance(value, dict):
+                        convert_objectid(value)
+                    elif isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, dict):
+                                convert_objectid(item)
+            return data
+        
+        # Apply conversion to all data
+        project_data = convert_objectid(project_data)
+        if script_data:
+            script_data = convert_objectid(script_data)
+        for img in images_data:
+            convert_objectid(img)
+        
         return {
             "project": project_data,
             "script": script_data,
