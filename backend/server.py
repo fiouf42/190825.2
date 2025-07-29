@@ -237,10 +237,12 @@ async def assemble_video(project_id: str, images: List[dict], audio_base64: str,
 
 async def get_elevenlabs_client():
     """Get ElevenLabs client instance"""
+    import httpx
+    # Create custom httpx client with timeout
+    httpx_client = httpx.AsyncClient(timeout=30.0)
     return AsyncElevenLabs(
         api_key=ELEVENLABS_API_KEY,
-        timeout=30.0,
-        max_retries=3
+        httpx_client=httpx_client
     )
 
 # Routes
