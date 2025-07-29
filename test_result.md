@@ -176,15 +176,18 @@ backend:
 
   - task: "API endpoints for video project creation"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented endpoints: /generate-script, /generate-images, /create-video-project, /project/{id}"
+      - working: false
+        agent: "testing"
+        comment: "⚠️ PARTIAL: API endpoints partially working. /generate-script ✅ working perfectly. /generate-images ❌ fails due to gpt-image-1 403 error. /create-video-project ✅ creates projects but with 0 images due to image generation failure. /project/{id} ❌ fails with 500 error due to MongoDB ObjectId serialization issue in response. Core functionality works but image-related features blocked by third-party API limitations and serialization bug."
 
 frontend:
   - task: "React UI with prompt input and duration slider"
