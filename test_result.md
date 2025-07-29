@@ -161,15 +161,18 @@ backend:
 
   - task: "Database models for scripts, images, and projects"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented Pydantic models: VideoGenerationRequest, GeneratedScript, GeneratedImage, VideoProject with UUID IDs"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Database models working correctly. Scripts are properly saved to MongoDB with all required fields (id, prompt, duration, script_text, scenes, created_at). UUID generation working. Pydantic models validate data correctly. MongoDB connection established and functional."
 
   - task: "API endpoints for video project creation"
     implemented: true
