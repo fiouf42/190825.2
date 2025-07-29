@@ -499,6 +499,32 @@ async def generate_voice(script_id: str, use_real_api: bool = False):
 
         script_obj = GeneratedScript(**script_data)
         
+        # Use mock data if specified or if not using real API
+        if USE_MOCK_DATA and not use_real_api:
+            logger.info("Using mock data for voice generation")
+            
+            # Create mock audio object
+            audio_obj = GeneratedAudio(
+                script_id=script_id,
+                audio_base64=get_mock_audio_data(),
+                voice_id="mock_french_voice",
+                duration=len(script_obj.script_text) * 0.1  # Rough estimate
+            )
+            
+            await db.audio.insert_one(audio_obj.dict())
+            
+            return {
+                "audio_id": audio_obj.id,
+                "script_id": script_id,
+                "voice_id": "mock_french_voice",
+                "duration": audio_obj.duration,
+                "audio_base64": audio_obj.audio_base64,
+                "message": "Mock audio generated successfully"
+            }
+        
+        # Real ElevenLabs implementation
+        logger.info("Using real ElevenLabs API for voice generation")
+        
         # Initialize ElevenLabs client
         client = await get_elevenlabs_client()
         
@@ -569,7 +595,8 @@ async def generate_voice(script_id: str, use_real_api: bool = False):
                 "script_id": script_id,
                 "voice_id": selected_voice_id,
                 "duration": duration,
-                "audio_base64": audio_base64
+                "audio_base64": audio_base64,
+                "message": "Real ElevenLabs audio generated successfully"
             }
             
         except Exception as tts_error:
