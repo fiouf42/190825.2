@@ -234,12 +234,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "LLM Chat integration for script generation (GPT-4.1)"
-    - "OpenAI Image Generation integration (gpt-image-1)"
-    - "API endpoints for video project creation"
     - "API integration for video generation"
     - "Display generated script and images"
-  stuck_tasks: []
+  stuck_tasks:
+    - "OpenAI Image Generation integration (gpt-image-1)"
+    - "API endpoints for video project creation"
   test_all: false
   test_priority: "high_first"
 
