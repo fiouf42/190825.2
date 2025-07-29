@@ -146,15 +146,18 @@ backend:
 
   - task: "OpenAI Image Generation integration (gpt-image-1)"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented OpenAI image generation with charcoal style prompts: noir/gris/blanc, granuleux, ombres fortes, technique fusain"
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL: OpenAI gpt-image-1 model returns 403 Forbidden error. Organization must be verified to use gpt-image-1 model. Error: 'Your organization must be verified to use the model gpt-image-1. Please go to: https://platform.openai.com/settings/organization/general and click on Verify Organization.' This is a third-party API limitation, not a code issue. Code implementation is correct with proper charcoal style prompts. Recommend using DALL-E 3 as fallback."
 
   - task: "Database models for scripts, images, and projects"
     implemented: true
