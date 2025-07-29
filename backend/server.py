@@ -64,8 +64,31 @@ class VideoProject(BaseModel):
 
 # Initialize OpenAI services
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')
+
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY not found in environment variables")
+if not ELEVENLABS_API_KEY:
+    raise ValueError("ELEVENLABS_API_KEY not found in environment variables")
+
+# Voice models - we'll try to find Nicolas voice or use a good French male voice
+FRENCH_VOICE_ID = "pNInz6obpgDQGcFmaJgB"  # Adam - male English (we'll update this after testing)
+
+class GeneratedAudio(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    script_id: str
+    audio_base64: str
+    voice_id: str = FRENCH_VOICE_ID
+    duration: float = 0.0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+async def get_elevenlabs_client():
+    """Get ElevenLabs client instance"""
+    return AsyncElevenLabs(
+        api_key=ELEVENLABS_API_KEY,
+        timeout=30.0,
+        max_retries=3
+    )
 
 # Routes
 @api_router.get("/")
