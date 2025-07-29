@@ -119,21 +119,24 @@ backend:
 
   - task: "OpenAI API key configuration"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/.env"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "API keys configured in .env file and loaded in server.py"
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL: OpenAI API key is invalid - returns 401 Unauthorized error. The key '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' is rejected by OpenAI API. This blocks all script generation and image generation functionality."
 
   - task: "LLM Chat integration for script generation (GPT-4.1)"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
@@ -143,14 +146,17 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: GPT-4.1 script generation working perfectly. Generated 1304 character script with 9 scenes for French prompt 'astuces productivité étudiants'. API endpoint /generate-script responds correctly with proper structure (id, prompt, duration, script_text, scenes, created_at). Script content is high quality and properly structured in French."
+      - working: false
+        agent: "testing"
+        comment: "❌ BLOCKED: Script generation fails due to invalid OpenAI API key (401 Unauthorized). The LlmChat implementation is correct but cannot function without valid API credentials."
 
   - task: "OpenAI Image Generation integration (gpt-image-1)"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
@@ -161,6 +167,9 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "Added fallback to dall-e-3 when gpt-image-1 returns 403 verification error"
+      - working: false
+        agent: "testing"
+        comment: "❌ BLOCKED: Image generation fails due to invalid OpenAI API key (401 Unauthorized). Both gpt-image-1 and dall-e-3 fallback cannot function without valid API credentials."
 
   - task: "Database models for scripts, images, and projects"
     implemented: true
@@ -179,11 +188,11 @@ backend:
 
   - task: "API endpoints for video project creation"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
@@ -194,6 +203,57 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "Fixed ObjectId serialization bug by converting ObjectIds to strings before JSON response"
+      - working: false
+        agent: "testing"
+        comment: "❌ BLOCKED: All video project endpoints fail due to invalid OpenAI API key. The endpoints are correctly implemented but depend on script and image generation which require valid OpenAI credentials."
+
+  - task: "ElevenLabs voice integration and available voices endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "✅ TESTED: GET /api/voices/available endpoint working correctly. Successfully retrieves 19 voices from ElevenLabs API. ElevenLabs client initialization fixed (removed invalid timeout/max_retries parameters). Voice fetching functionality is fully operational."
+
+  - task: "ElevenLabs voice generation endpoint"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "❌ BLOCKED: POST /api/generate-voice fails due to ElevenLabs free tier being disabled. API returns 401 with message 'Unusual activity detected. Free Tier usage disabled.' This is a third-party API limitation, not a code issue. The implementation is correct but requires a paid ElevenLabs subscription."
+
+  - task: "FFmpeg video assembly endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Cannot test POST /api/assemble-video independently due to dependencies on script, image, and voice generation which are blocked by API key issues. FFmpeg is installed and available (version 5.1.6). The video assembly implementation includes modern transitions, subtitle overlay, and TikTok format (1080x1920) output."
+
+  - task: "Complete video pipeline endpoint"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "❌ BLOCKED: POST /api/create-complete-video fails at the first step (script generation) due to invalid OpenAI API key. The complete pipeline implementation is correct but cannot function without valid API credentials for OpenAI services."
 
 frontend:
   - task: "React UI with prompt input and duration slider"
@@ -235,16 +295,16 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 2
+  test_sequence: 3
   run_ui: false
 
 test_plan:
   current_focus:
-    - "API integration for video generation"
-    - "Display generated script and images"
+    - "OpenAI API key configuration"
+    - "ElevenLabs voice generation endpoint"
   stuck_tasks:
-    - "OpenAI Image Generation integration (gpt-image-1)"
-    - "API endpoints for video project creation"
+    - "OpenAI API key configuration"
+    - "ElevenLabs voice generation endpoint"
   test_all: false
   test_priority: "high_first"
 
@@ -257,3 +317,5 @@ agent_communication:
     message: "Fixed both critical issues: Added dall-e-3 fallback for image generation when gpt-image-1 returns 403 verification error. Fixed ObjectId serialization by converting to strings before JSON response. Both fixes need retesting."
   - agent: "testing"
     message: "BACKEND TESTING COMPLETED: ✅ GPT-4.1 script generation working perfectly with French prompts. ✅ Database models and MongoDB storage functional. ❌ CRITICAL: gpt-image-1 requires organization verification (403 error) - this is OpenAI API limitation, not code issue. ❌ Project retrieval endpoint has MongoDB ObjectId serialization bug causing 500 errors. Core script generation works, but image features blocked by third-party API access. Recommend: 1) Use DALL-E 3 as fallback for images, 2) Fix ObjectId serialization in project retrieval endpoint."
+  - agent: "testing"
+    message: "VOICE & VIDEO TESTING COMPLETED: ✅ ElevenLabs voice fetching works (19 voices retrieved). ✅ FFmpeg installed and available. ❌ CRITICAL: OpenAI API key is invalid (401 Unauthorized) - blocks ALL script/image generation. ❌ CRITICAL: ElevenLabs free tier disabled due to 'unusual activity' - blocks voice generation. ❌ Cannot test video assembly due to dependency on blocked services. RECOMMENDATION: Fix OpenAI API key and upgrade ElevenLabs to paid plan to enable full pipeline testing."
