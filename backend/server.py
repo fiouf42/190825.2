@@ -82,6 +82,159 @@ class GeneratedAudio(BaseModel):
     duration: float = 0.0
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+class VideoAssemblyResult(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    video_base64: str
+    duration: float
+    resolution: str = "1080x1920"  # TikTok format
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+def create_subtitle_file(script_text: str, duration: float) -> str:
+    """Create SRT subtitle file from script"""
+    lines = script_text.split('.')
+    lines = [line.strip() for line in lines if line.strip()]
+    
+    srt_content = ""
+    time_per_line = duration / len(lines) if lines else duration
+    
+    for i, line in enumerate(lines):
+        start_time = i * time_per_line
+        end_time = (i + 1) * time_per_line
+        
+        # Convert to SRT time format
+        start_h = int(start_time // 3600)
+        start_m = int((start_time % 3600) // 60)
+        start_s = int(start_time % 60)
+        start_ms = int((start_time % 1) * 1000)
+        
+        end_h = int(end_time // 3600)
+        end_m = int((end_time % 3600) // 60)
+        end_s = int(end_time % 60)
+        end_ms = int((end_time % 1) * 1000)
+        
+        srt_content += f"{i + 1}\n"
+        srt_content += f"{start_h:02d}:{start_m:02d}:{start_s:02d},{start_ms:03d} --> {end_h:02d}:{end_m:02d}:{end_s:02d},{end_ms:03d}\n"
+        srt_content += f"{line}\n\n"
+    
+    return srt_content
+
+async def assemble_video(project_id: str, images: List[dict], audio_base64: str, script_text: str, duration: float) -> str:
+    """Assemble final video using FFmpeg with modern transitions"""
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            
+            # Save audio file
+            audio_path = temp_path / "audio.mp3"
+            audio_data = base64.b64decode(audio_base64)
+            with open(audio_path, "wb") as f:
+                f.write(audio_data)
+            
+            # Save images
+            image_paths = []
+            for i, image in enumerate(images):
+                img_path = temp_path / f"image_{i}.png"
+                img_data = base64.b64decode(image['image_base64'])
+                with open(img_path, "wb") as f:
+                    f.write(img_data)
+                image_paths.append(img_path)
+            
+            # Create subtitle file
+            subtitle_path = temp_path / "subtitles.srt"
+            srt_content = create_subtitle_file(script_text, duration)
+            with open(subtitle_path, "w", encoding="utf-8") as f:
+                f.write(srt_content)
+            
+            # Calculate duration per image
+            image_duration = duration / len(images) if images else duration
+            
+            # Create video with modern transitions
+            output_path = temp_path / "final_video.mp4"
+            
+            # Build FFmpeg command with advanced transitions
+            inputs = []
+            filter_complex = ""
+            
+            # Add all images as inputs
+            for i, img_path in enumerate(image_paths):
+                inputs.extend(['-loop', '1', '-t', str(image_duration + 0.5), '-i', str(img_path)])
+            
+            # Add audio input
+            inputs.extend(['-i', str(audio_path)])
+            
+            # Create filter for transitions and effects
+            if len(image_paths) > 1:
+                # Scale all images to TikTok format (1080x1920)
+                scale_filters = []
+                for i in range(len(image_paths)):
+                    scale_filters.append(f"[{i}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[v{i}]")
+                
+                filter_complex = ";".join(scale_filters) + ";"
+                
+                # Add modern transitions (crossfade with zoom and rotation effects)
+                transition_filters = []
+                for i in range(len(image_paths) - 1):
+                    if i == 0:
+                        # First transition
+                        filter_complex += f"[v{i}][v{i+1}]xfade=transition=slidedown:duration=0.5:offset={image_duration}[t{i}];"
+                    else:
+                        # Subsequent transitions
+                        prev_label = f"t{i-1}" if i > 1 else f"v{i}"
+                        filter_complex += f"[{prev_label}][v{i+1}]xfade=transition=fade:duration=0.5:offset={image_duration*(i+1)}[t{i}];"
+                
+                # Final output label
+                final_label = f"t{len(image_paths)-2}"
+            else:
+                # Single image
+                filter_complex = f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[video]"
+                final_label = "video"
+            
+            # Add subtle zoom effect and subtitle overlay
+            filter_complex += f"[{final_label}]zoompan=z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0015))':d=25:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)',subtitles='{subtitle_path}':force_style='Fontsize=24,PrimaryColour=&Hffffff&,OutlineColour=&H000000&,BorderStyle=3'[final]"
+            
+            # Execute FFmpeg command
+            cmd = [
+                'ffmpeg',
+                '-y',  # Overwrite output
+            ] + inputs + [
+                '-filter_complex', filter_complex,
+                '-map', '[final]',
+                '-map', f'{len(image_paths)}:a',  # Audio from last input
+                '-c:v', 'libx264',
+                '-preset', 'medium',
+                '-crf', '23',
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-shortest',
+                '-r', '25',  # 25 fps
+                str(output_path)
+            ]
+            
+            # Run FFmpeg
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await process.communicate()
+            
+            if process.returncode != 0:
+                logger.error(f"FFmpeg error: {stderr.decode()}")
+                raise Exception(f"Video assembly failed: {stderr.decode()}")
+            
+            # Read and encode video
+            with open(output_path, "rb") as f:
+                video_data = f.read()
+            
+            video_base64 = base64.b64encode(video_data).decode('utf-8')
+            return video_base64
+            
+    except Exception as e:
+        logger.error(f"Error assembling video: {str(e)}")
+        raise Exception(f"Video assembly failed: {str(e)}")
+
 async def get_elevenlabs_client():
     """Get ElevenLabs client instance"""
     return AsyncElevenLabs(
