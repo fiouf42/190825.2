@@ -150,7 +150,7 @@ async def generate_images(script_id: str):
 
         script_obj = GeneratedScript(**script_data)
         
-        # Initialize OpenAI Image Generation
+        # Initialize OpenAI Image Generation  
         image_gen = OpenAIImageGeneration(api_key=OPENAI_API_KEY)
         
         generated_images = []
@@ -163,12 +163,24 @@ async def generate_images(script_id: str):
             Composition cinématographique, éclairage contrasté, détails texturés."""
             
             try:
-                # Generate image
-                images = await image_gen.generate_images(
-                    prompt=charcoal_prompt,
-                    model="gpt-image-1",
-                    number_of_images=1
-                )
+                # Try gpt-image-1 first, fallback to dall-e-3 if 403 error
+                images = None
+                try:
+                    images = await image_gen.generate_images(
+                        prompt=charcoal_prompt,
+                        model="gpt-image-1",
+                        number_of_images=1
+                    )
+                except Exception as gpt_error:
+                    if "403" in str(gpt_error) or "verification" in str(gpt_error).lower():
+                        logger.info(f"gpt-image-1 requires verification, falling back to dall-e-3")
+                        images = await image_gen.generate_images(
+                            prompt=charcoal_prompt,
+                            model="dall-e-3",
+                            number_of_images=1
+                        )
+                    else:
+                        raise gpt_error
                 
                 if images and len(images) > 0:
                     # Convert to base64
