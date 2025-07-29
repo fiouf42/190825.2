@@ -169,7 +169,120 @@ async def generate_script(request: VideoGenerationRequest):
         logger.error(f"Error generating script: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating script: {str(e)}")
 
-@api_router.post("/generate-images")
+@api_router.post("/generate-voice")
+async def generate_voice(script_id: str):
+    """Generate voice narration from script using ElevenLabs"""
+    try:
+        # Get script from database
+        script_data = await db.scripts.find_one({"id": script_id})
+        if not script_data:
+            raise HTTPException(status_code=404, detail="Script not found")
+
+        script_obj = GeneratedScript(**script_data)
+        
+        # Initialize ElevenLabs client
+        client = await get_elevenlabs_client()
+        
+        # First, let's get available voices to find Nicolas or a French male voice
+        try:
+            voices = await client.voices.get_all()
+            logger.info(f"Available voices: {[voice.name for voice in voices.voices]}")
+            
+            # Look for Nicolas voice or suitable French male voice
+            selected_voice_id = FRENCH_VOICE_ID
+            for voice in voices.voices:
+                if "nicolas" in voice.name.lower():
+                    selected_voice_id = voice.voice_id
+                    logger.info(f"Found Nicolas voice: {voice.voice_id}")
+                    break
+                elif "french" in voice.name.lower() and "male" in voice.name.lower():
+                    selected_voice_id = voice.voice_id
+                    logger.info(f"Found French male voice: {voice.name} - {voice.voice_id}")
+                    break
+        except Exception as voice_error:
+            logger.warning(f"Could not fetch voices: {voice_error}, using default voice")
+        
+        # Generate audio from script text
+        try:
+            # Use the full script text for narration
+            text_to_speak = script_obj.script_text
+            
+            # Generate audio
+            audio_generator = await client.text_to_speech.generate(
+                text=text_to_speak,
+                voice_id=selected_voice_id,
+                model="eleven_multilingual_v2",  # Best for French
+                voice_settings={
+                    "stability": 0.5,
+                    "similarity_boost": 0.8,
+                    "style": 0.3,
+                    "use_speaker_boost": True
+                }
+            )
+            
+            # Collect audio chunks
+            audio_chunks = []
+            async for chunk in audio_generator:
+                audio_chunks.append(chunk)
+            
+            # Combine chunks
+            audio_data = b''.join(audio_chunks)
+            
+            # Convert to base64
+            audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+            
+            # Calculate duration (approximation)
+            duration = len(text_to_speak) * 0.1  # Rough estimate
+            
+            # Create audio object
+            audio_obj = GeneratedAudio(
+                script_id=script_id,
+                audio_base64=audio_base64,
+                voice_id=selected_voice_id,
+                duration=duration
+            )
+            
+            # Save to database
+            await db.audio.insert_one(audio_obj.dict())
+            
+            return {
+                "audio_id": audio_obj.id,
+                "script_id": script_id,
+                "voice_id": selected_voice_id,
+                "duration": duration,
+                "audio_base64": audio_base64
+            }
+            
+        except Exception as tts_error:
+            logger.error(f"Error generating TTS: {str(tts_error)}")
+            raise HTTPException(status_code=500, detail=f"Error generating voice: {str(tts_error)}")
+
+    except Exception as e:
+        logger.error(f"Error in generate_voice: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating voice: {str(e)}")
+
+@api_router.get("/voices/available")
+async def get_available_voices():
+    """Get all available voices from ElevenLabs"""
+    try:
+        client = await get_elevenlabs_client()
+        voices = await client.voices.get_all()
+        
+        voice_list = []
+        for voice in voices.voices:
+            voice_list.append({
+                "voice_id": voice.voice_id,
+                "name": voice.name,
+                "category": voice.category,
+                "description": getattr(voice, 'description', ''),
+                "preview_url": getattr(voice, 'preview_url', '')
+            })
+        
+        return {"voices": voice_list}
+        
+    except Exception as e:
+        logger.error(f"Error fetching voices: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching voices: {str(e)}")
 async def generate_images(script_id: str):
     try:
         # Get script from database
