@@ -252,4 +252,8 @@ agent_communication:
   - agent: "main"
     message: "Phase 1 MVP implemented: Interface + script generation (GPT-4.1) + image generation (gpt-image-1) with charcoal style. Backend has all endpoints ready. Frontend interface is working visually. Need to test backend API integrations with OpenAI services and end-to-end flow."
   - agent: "testing"
+    message: "Backend testing completed. Script generation with GPT-4.1 works perfectly. Found 2 critical issues: gpt-image-1 requires organization verification (403 error) and MongoDB ObjectId serialization bug in project retrieval."
+  - agent: "main"
+    message: "Fixed both critical issues: Added dall-e-3 fallback for image generation when gpt-image-1 returns 403 verification error. Fixed ObjectId serialization by converting to strings before JSON response. Both fixes need retesting."
+  - agent: "testing"
     message: "BACKEND TESTING COMPLETED: ✅ GPT-4.1 script generation working perfectly with French prompts. ✅ Database models and MongoDB storage functional. ❌ CRITICAL: gpt-image-1 requires organization verification (403 error) - this is OpenAI API limitation, not code issue. ❌ Project retrieval endpoint has MongoDB ObjectId serialization bug causing 500 errors. Core script generation works, but image features blocked by third-party API access. Recommend: 1) Use DALL-E 3 as fallback for images, 2) Fix ObjectId serialization in project retrieval endpoint."
