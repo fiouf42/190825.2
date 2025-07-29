@@ -12,6 +12,12 @@ from datetime import datetime
 import base64
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
+from elevenlabs.client import AsyncElevenLabs
+import ffmpeg
+import tempfile
+import io
+import asyncio
+from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
