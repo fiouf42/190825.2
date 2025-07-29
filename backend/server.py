@@ -314,6 +314,22 @@ async def root():
 @api_router.post("/generate-script", response_model=GeneratedScript)
 async def generate_script(request: VideoGenerationRequest):
     try:
+        if USE_MOCK_DATA:
+            # Use mock data for testing
+            logger.info("Using mock data for script generation")
+            mock_data = get_mock_script_data(request.prompt, request.duration)
+            
+            script_obj = GeneratedScript(
+                prompt=request.prompt,
+                duration=request.duration,
+                script_text=mock_data["script_text"],
+                scenes=mock_data["scenes"]
+            )
+            
+            await db.scripts.insert_one(script_obj.dict())
+            return script_obj
+        
+        # Original OpenAI implementation
         # Initialize LLM Chat with GPT-4.1
         chat = LlmChat(
             api_key=OPENAI_API_KEY,
