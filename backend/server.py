@@ -65,6 +65,7 @@ class VideoProject(BaseModel):
 # Initialize OpenAI services
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')
+USE_MOCK_DATA = os.environ.get('USE_MOCK_DATA', 'false').lower() == 'true'
 
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY not found in environment variables")
@@ -73,6 +74,66 @@ if not ELEVENLABS_API_KEY:
 
 # Voice models - we'll try to find Nicolas voice or use a good French male voice
 FRENCH_VOICE_ID = "pNInz6obpgDQGcFmaJgB"  # Adam - male English (we'll update this after testing)
+
+def get_mock_script_data(prompt: str, duration: int) -> dict:
+    """Generate mock script data for testing"""
+    mock_scripts = {
+        "productivité étudiants": {
+            "script_text": """Salut tout le monde ! Aujourd'hui, je vais partager avec vous mes 5 meilleures astuces de productivité pour les étudiants. Ces techniques m'ont aidé à doubler mon efficacité et à réduire mon stress.
+
+Première astuce : la technique Pomodoro. Travaillez pendant 25 minutes, puis prenez une pause de 5 minutes. Cette méthode améliore votre concentration et évite la fatigue mentale.
+
+Deuxième astuce : planifiez votre journée la veille. Préparez votre liste de tâches et organisez vos priorités. Vous gagnerez un temps précieux le matin.
+
+Troisième astuce : créez un espace de travail dédié. Un environnement propre et organisé stimule votre productivité et votre motivation.
+
+Quatrième astuce : utilisez la règle des 2 minutes. Si une tâche prend moins de 2 minutes, faites-la immédiatement plutôt que de la reporter.
+
+Cinquième astuce : prenez soin de votre sommeil. Un bon repos améliore votre mémoire et votre capacité d'apprentissage. Essayez ces conseils et dites-moi lesquels fonctionnent le mieux pour vous !""",
+            "scenes": [
+                "Introduction aux astuces de productivité pour étudiants",
+                "Technique Pomodoro : 25 minutes de travail, 5 minutes de pause",
+                "Planification de la journée : préparer sa liste de tâches la veille",
+                "Espace de travail dédié : environnement propre et organisé",
+                "Règle des 2 minutes : faire immédiatement les tâches courtes",
+                "Importance du sommeil : repos pour améliorer mémoire et apprentissage"
+            ]
+        },
+        "default": {
+            "script_text": f"""Bienvenue dans cette nouvelle vidéo ! Aujourd'hui, nous allons explorer le sujet fascinant : {prompt}.
+
+Cette vidéo de {duration} secondes va vous donner les informations essentielles et des conseils pratiques. Nous allons découvrir les aspects les plus importants de ce sujet.
+
+Premièrement, nous aborderons les bases fondamentales. Il est crucial de comprendre les concepts clés avant d'aller plus loin.
+
+Ensuite, nous verrons des applications pratiques. Ces exemples concrets vous aideront à mieux saisir les enjeux.
+
+Enfin, nous conclurons avec des conseils pour aller plus loin. N'hésitez pas à liker et vous abonner si cette vidéo vous a plu !""",
+            "scenes": [
+                f"Introduction au sujet : {prompt}",
+                "Présentation des bases fondamentales et concepts clés",
+                "Applications pratiques avec exemples concrets",
+                "Conseils pour approfondir le sujet"
+            ]
+        }
+    }
+    
+    # Find best matching script
+    for key, data in mock_scripts.items():
+        if key in prompt.lower():
+            return data
+    
+    return mock_scripts["default"]
+
+def get_mock_image_data() -> str:
+    """Generate mock base64 image data (1x1 black pixel PNG)"""
+    # Minimal 1x1 black PNG in base64
+    return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC"
+
+def get_mock_audio_data() -> str:
+    """Generate mock base64 audio data (silent MP3)"""
+    # Minimal silent MP3 in base64 (1 second of silence)
+    return "SUQzAwAAAAAfdlRYWFgAAAASAAABZW5jAFNreUZvdXIgMC4xZlRYWFgAAAASAAABZW5jAFNreUZvdXIgMC4xZgD/80DEAAAAAAPAQAABDUXABTpCIAxIiYaUlJkYUkUaIkYUYIZBEJCCBBGCRAjAjJSkxOXAuXk5c8zMjNjA8PAxIwE/DfxPA3AGCA=="
 
 class GeneratedAudio(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
