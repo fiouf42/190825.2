@@ -526,6 +526,29 @@ async def generate_images(script_id: str):
 
         script_obj = GeneratedScript(**script_data)
         
+        if USE_MOCK_DATA:
+            # Use mock data for testing
+            logger.info("Using mock data for image generation")
+            generated_images = []
+            
+            for i, scene in enumerate(script_obj.scenes):
+                # Create mock image object
+                image_obj = GeneratedImage(
+                    prompt=f"Style charbon artistique dramatique: {scene}",
+                    image_base64=get_mock_image_data(),
+                    scene_description=scene
+                )
+                
+                await db.images.insert_one(image_obj.dict())
+                generated_images.append(image_obj)
+            
+            return {
+                "script_id": script_id,
+                "images": generated_images,
+                "total_generated": len(generated_images)
+            }
+        
+        # Original OpenAI implementation
         # Initialize OpenAI Image Generation  
         image_gen = OpenAIImageGeneration(api_key=OPENAI_API_KEY)
         
