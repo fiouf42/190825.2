@@ -508,6 +508,122 @@ async def generate_images(script_id: str):
         logger.error(f"Error generating images: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating images: {str(e)}")
 
+@api_router.post("/assemble-video")
+async def assemble_final_video(project_id: str):
+    """Assemble final video with images, voice, and subtitles"""
+    try:
+        # Get project data
+        project_data = await db.projects.find_one({"id": project_id})
+        if not project_data:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        # Get script
+        script_data = await db.scripts.find_one({"id": project_data["script_id"]})
+        if not script_data:
+            raise HTTPException(status_code=404, detail="Script not found")
+        
+        # Get images
+        images_data = await db.images.find({"id": {"$in": project_data["image_ids"]}}).to_list(1000)
+        if not images_data:
+            raise HTTPException(status_code=404, detail="Images not found")
+        
+        # Get audio
+        audio_data = await db.audio.find_one({"script_id": project_data["script_id"]})
+        if not audio_data:
+            # Generate audio if not exists
+            voice_response = await generate_voice(project_data["script_id"])
+            audio_base64 = voice_response["audio_base64"]
+            audio_duration = voice_response["duration"]
+        else:
+            audio_base64 = audio_data["audio_base64"]
+            audio_duration = audio_data["duration"]
+        
+        # Assemble video
+        video_base64 = await assemble_video(
+            project_id=project_id,
+            images=images_data,
+            audio_base64=audio_base64,
+            script_text=script_data["script_text"],
+            duration=audio_duration
+        )
+        
+        # Save video result
+        video_result = VideoAssemblyResult(
+            project_id=project_id,
+            video_base64=video_base64,
+            duration=audio_duration
+        )
+        
+        await db.videos.insert_one(video_result.dict())
+        
+        # Update project status
+        await db.projects.update_one(
+            {"id": project_id},
+            {"$set": {"status": "video_completed"}}
+        )
+        
+        return {
+            "video_id": video_result.id,
+            "project_id": project_id,
+            "duration": audio_duration,
+            "resolution": "1080x1920",
+            "video_base64": video_base64
+        }
+        
+    except Exception as e:
+        logger.error(f"Error assembling video: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error assembling video: {str(e)}")
+
+@api_router.post("/create-complete-video", response_model=dict)
+async def create_complete_video(request: VideoGenerationRequest):
+    """Complete pipeline: script -> images -> voice -> video assembly"""
+    try:
+        # Step 1: Generate script
+        script_response = await generate_script(request)
+        script_id = script_response.id
+        
+        # Step 2: Generate images
+        images_response = await generate_images(script_id)
+        
+        # Step 3: Generate voice
+        voice_response = await generate_voice(script_id)
+        
+        # Step 4: Create project
+        project_obj = VideoProject(
+            original_prompt=request.prompt,
+            duration=request.duration,
+            script_id=script_id,
+            image_ids=[img.id for img in images_response["images"]],
+            status="voice_completed"
+        )
+        
+        await db.projects.insert_one(project_obj.dict())
+        
+        # Step 5: Assemble final video
+        video_response = await assemble_final_video(project_obj.id)
+        
+        return {
+            "project_id": project_obj.id,
+            "script": script_response,
+            "images": images_response["images"],
+            "audio": {
+                "audio_id": voice_response["audio_id"],
+                "duration": voice_response["duration"],
+                "voice_id": voice_response["voice_id"]
+            },
+            "video": {
+                "video_id": video_response["video_id"],
+                "duration": video_response["duration"],
+                "resolution": video_response["resolution"],
+                "video_base64": video_response["video_base64"]
+            },
+            "status": "completed"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating complete video: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error creating complete video: {str(e)}")
+
 @api_router.post("/create-video-project", response_model=VideoProject)
 async def create_video_project(request: VideoGenerationRequest):
     try:
