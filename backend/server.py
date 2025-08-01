@@ -17,6 +17,7 @@ import ffmpeg
 import tempfile
 import io
 import asyncio
+import httpx
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent
