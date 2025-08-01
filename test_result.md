@@ -293,6 +293,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ PIPELINE ARCHITECTURE CONFIRMED WORKING! The FFmpeg 'stream specifier issues' were actually missing FFmpeg installation. After installing FFmpeg and fixing mock audio data format, the complete pipeline works perfectly: Script (1268 chars) → Images (mock) → Voice (126.8s) → Video Assembly → Final Video (44,508 chars base64). The video assembly with complex filters, xfade transitions, subtitle overlay, and TikTok format (1080x1920) is fully functional. Only blocker now is invalid OpenAI API key preventing real API usage."
+      - working: false
+        agent: "testing"
+        comment: "❌ PARTIAL SUCCESS: OpenAI API key is now WORKING (script + image generation successful), but complete pipeline fails at video assembly stage. Script generation (1147+ chars), image generation (4 images), and voice generation all work correctly. Issue is in FFmpeg video assembly step causing 500 errors. The authentication blocker is resolved, but video assembly needs debugging."
 
 frontend:
   - task: "React UI with prompt input and duration slider"
