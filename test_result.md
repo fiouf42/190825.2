@@ -259,13 +259,16 @@ backend:
     implemented: true
     working: false
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "❌ BLOCKED: POST /api/create-complete-video fails at the first step (script generation) due to invalid OpenAI API key. The complete pipeline implementation is correct but cannot function without valid API credentials for OpenAI services."
+      - working: false
+        agent: "testing"
+        comment: "❌ BLOCKED: Complete video pipeline still fails due to image generation issue. While script generation and voice generation now work with new API keys, the pipeline is blocked by the image data processing problem in emergentintegrations library. FFmpeg is installed and available. Pipeline fails when trying to process None image data from OpenAI image generation."
 
 frontend:
   - task: "React UI with prompt input and duration slider"
