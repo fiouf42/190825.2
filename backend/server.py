@@ -696,8 +696,31 @@ async def generate_images(script_id: str):
                         raise gpt_error
                 
                 if images and len(images) > 0:
-                    # Convert to base64
-                    image_base64 = base64.b64encode(images[0]).decode('utf-8')
+                    # Handle new OpenAI API structure that returns base64 data directly
+                    image_data = images[0]
+                    image_base64 = ""
+                    
+                    # Check if image_data is already base64 string or bytes
+                    if isinstance(image_data, str):
+                        # Already base64 encoded
+                        image_base64 = image_data
+                    elif isinstance(image_data, bytes):
+                        # Convert bytes to base64
+                        image_base64 = base64.b64encode(image_data).decode('utf-8')
+                    elif hasattr(image_data, 'b64_json') and image_data.b64_json:
+                        # OpenAI response object with b64_json field
+                        image_base64 = image_data.b64_json
+                    elif isinstance(image_data, dict) and 'b64_json' in image_data:
+                        # Dictionary with b64_json field
+                        image_base64 = image_data['b64_json']
+                    else:
+                        logger.error(f"Unexpected image data type: {type(image_data)}")
+                        continue
+                    
+                    # Validate base64 data
+                    if not image_base64 or len(image_base64) < 100:
+                        logger.error(f"Invalid or empty base64 data for image {i}")
+                        continue
                     
                     # Create image object
                     image_obj = GeneratedImage(
