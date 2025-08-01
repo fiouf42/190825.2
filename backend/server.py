@@ -769,16 +769,19 @@ async def generate_images(script_id: str):
                 if not image_base64 or len(image_base64) < 100:
                     logger.error(f"Invalid or empty base64 data for image {i}")
                     continue
-                    
-                    # Create image object
-                    image_obj = GeneratedImage(
-                        prompt=charcoal_prompt,
-                        image_base64=image_base64,
-                        scene_description=scene
-                    )
-                    
-                    await db.images.insert_one(image_obj.dict())
-                    generated_images.append(image_obj)
+                
+                logger.info(f"Successfully generated image {i} with {len(image_base64)} chars of base64 data")
+                
+                # Create image object
+                image_obj = GeneratedImage(
+                    prompt=charcoal_prompt,
+                    image_base64=image_base64,
+                    scene_description=scene
+                )
+                
+                await db.images.insert_one(image_obj.dict())
+                generated_images.append(image_obj)
+                logger.info(f"Image {i} saved to database with ID: {image_obj.id}")
                     
             except Exception as img_error:
                 logger.error(f"Error generating image for scene {i}: {str(img_error)}")
