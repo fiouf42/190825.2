@@ -160,7 +160,7 @@ backend:
     implemented: true
     working: false
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
@@ -176,6 +176,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "❌ BLOCKED: Image generation fails due to invalid OpenAI API key (401 Unauthorized). Both gpt-image-1 and dall-e-3 fallback cannot function without valid API credentials."
+      - working: false
+        agent: "testing"
+        comment: "❌ PARTIAL SUCCESS: New OpenAI API key resolves authentication (200 OK responses), but image data processing fails. OpenAI API returns successful responses but emergentintegrations library returns None for image data, causing 'argument should be a bytes-like object or ASCII string, not NoneType' error. Some prompts also trigger content policy violations. Need to fix image data handling in the library or implement direct OpenAI API calls."
 
   - task: "Database models for scripts, images, and projects"
     implemented: true
