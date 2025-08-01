@@ -11,7 +11,7 @@ import base64
 from typing import Dict, Any
 
 # Configuration
-BACKEND_URL = "https://eec84c22-7013-42be-90c3-11e7daa1d495.preview.emergentagent.com/api"
+BACKEND_URL = "https://5df54ba3-897c-4805-b2d5-ffbd6fd6461c.preview.emergentagent.com/api"
 
 class ElevenLabsVoiceTester:
     def __init__(self):
