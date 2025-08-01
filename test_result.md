@@ -272,6 +272,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "❌ BLOCKED: Complete video pipeline still fails due to image generation issue. While script generation and voice generation now work with new API keys, the pipeline is blocked by the image data processing problem in emergentintegrations library. FFmpeg is installed and available. Pipeline fails when trying to process None image data from OpenAI image generation."
+      - working: false
+        agent: "testing"
+        comment: "✅ MAJOR PROGRESS: Image generation fix resolved! Pipeline now successfully completes script generation (GPT-4.1), image generation (5 images with valid base64 data), and voice generation (ElevenLabs). Pipeline now fails at video assembly stage due to FFmpeg stream specifier issues, not image generation. This is significant progress - the core image generation blocker is resolved."
 
 frontend:
   - task: "React UI with prompt input and duration slider"
