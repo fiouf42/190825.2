@@ -329,9 +329,9 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "FFmpeg video assembly endpoint"
-  stuck_tasks: []
+  current_focus: []
+  stuck_tasks:
+    - "OpenAI API key configuration"
   test_all: false
   test_priority: "high_first"
 
