@@ -182,7 +182,7 @@ def create_subtitle_file(script_text: str, duration: float) -> str:
     return srt_content
 
 async def assemble_video(project_id: str, images: List[dict], audio_base64: str, script_text: str, duration: float) -> str:
-    """Assemble final video using FFmpeg with modern transitions"""
+    """Assemble final video using FFmpeg with simplified but effective transitions"""
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -210,68 +210,67 @@ async def assemble_video(project_id: str, images: List[dict], audio_base64: str,
             
             # Calculate duration per image
             image_duration = duration / len(images) if images else duration
-            
-            # Create video with modern transitions
             output_path = temp_path / "final_video.mp4"
             
-            # Build FFmpeg command with advanced transitions
-            inputs = []
-            filter_complex = ""
-            
-            # Add all images as inputs
-            for i, img_path in enumerate(image_paths):
-                inputs.extend(['-loop', '1', '-t', str(image_duration + 0.5), '-i', str(img_path)])
-            
-            # Add audio input
-            inputs.extend(['-i', str(audio_path)])
-            
-            # Create filter for transitions and effects
-            if len(image_paths) > 1:
-                # Scale all images to TikTok format (1080x1920)
-                scale_filters = []
-                for i in range(len(image_paths)):
-                    scale_filters.append(f"[{i}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[v{i}]")
-                
-                filter_complex = ";".join(scale_filters) + ";"
-                
-                # Add modern transitions (crossfade with zoom and rotation effects)
-                transition_filters = []
-                for i in range(len(image_paths) - 1):
-                    if i == 0:
-                        # First transition
-                        filter_complex += f"[v{i}][v{i+1}]xfade=transition=slidedown:duration=0.5:offset={image_duration}[t{i}];"
-                    else:
-                        # Subsequent transitions
-                        prev_label = f"t{i-1}" if i > 1 else f"v{i}"
-                        filter_complex += f"[{prev_label}][v{i+1}]xfade=transition=fade:duration=0.5:offset={image_duration*(i+1)}[t{i}];"
-                
-                # Final output label
-                final_label = f"t{len(image_paths)-2}"
+            if len(image_paths) == 1:
+                # Single image video
+                cmd = [
+                    'ffmpeg', '-y',
+                    '-loop', '1', '-t', str(duration), '-i', str(image_paths[0]),
+                    '-i', str(audio_path),
+                    '-filter_complex', 
+                    f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0015))':d=25:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)',subtitles='{subtitle_path}':force_style='Fontsize=24,PrimaryColour=&Hffffff&,OutlineColour=&H000000&,BorderStyle=3'[final]",
+                    '-map', '[final]',
+                    '-map', '1:a',
+                    '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
+                    '-c:a', 'aac', '-b:a', '128k',
+                    '-shortest', '-r', '25',
+                    str(output_path)
+                ]
             else:
-                # Single image
-                filter_complex = f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[video]"
-                final_label = "video"
-            
-            # Add subtle zoom effect and subtitle overlay
-            filter_complex += f"[{final_label}]zoompan=z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0015))':d=25:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)',subtitles='{subtitle_path}':force_style='Fontsize=24,PrimaryColour=&Hffffff&,OutlineColour=&H000000&,BorderStyle=3'[final]"
-            
-            # Execute FFmpeg command
-            cmd = [
-                'ffmpeg',
-                '-y',  # Overwrite output
-            ] + inputs + [
-                '-filter_complex', filter_complex,
-                '-map', '[final]',
-                '-map', f'{len(image_paths)}:a',  # Audio from last input
-                '-c:v', 'libx264',
-                '-preset', 'medium',
-                '-crf', '23',
-                '-c:a', 'aac',
-                '-b:a', '128k',
-                '-shortest',
-                '-r', '25',  # 25 fps
-                str(output_path)
-            ]
+                # Multiple images with transitions
+                # First, create a simple concatenation with crossfade
+                inputs = []
+                filter_parts = []
+                
+                # Add all image inputs
+                for i, img_path in enumerate(image_paths):
+                    inputs.extend(['-loop', '1', '-t', str(image_duration + 1), '-i', str(img_path)])
+                    # Scale each input
+                    filter_parts.append(f"[{i}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[v{i}]")
+                
+                # Add audio input (will be the last input)
+                inputs.extend(['-i', str(audio_path)])
+                audio_index = len(image_paths)
+                
+                # Create crossfade transitions
+                if len(image_paths) == 2:
+                    filter_parts.append(f"[v0][v1]xfade=transition=fade:duration=0.5:offset={image_duration}[xfaded]")
+                    final_filter = f"[xfaded]zoompan=z='if(lte(zoom,1.0),1.2,max(1.001,zoom-0.0010))':d=25:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)',subtitles='{subtitle_path}':force_style='Fontsize=24,PrimaryColour=&Hffffff&,OutlineColour=&H000000&,BorderStyle=3'[final]"
+                else:
+                    # For 3+ images, chain crossfades
+                    filter_parts.append(f"[v0][v1]xfade=transition=fade:duration=0.5:offset={image_duration}[xf0]")
+                    for i in range(2, len(image_paths)):
+                        prev_label = f"xf{i-2}"
+                        filter_parts.append(f"[{prev_label}][v{i}]xfade=transition=fade:duration=0.5:offset={image_duration*i}[xf{i-1}]")
+                    
+                    last_xf_label = f"xf{len(image_paths)-2}"
+                    final_filter = f"[{last_xf_label}]zoompan=z='if(lte(zoom,1.0),1.2,max(1.001,zoom-0.0010))':d=25:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)',subtitles='{subtitle_path}':force_style='Fontsize=24,PrimaryColour=&Hffffff&,OutlineColour=&H000000&,BorderStyle=3'[final]"
+                
+                filter_parts.append(final_filter)
+                filter_complex = ";".join(filter_parts)
+                
+                cmd = [
+                    'ffmpeg', '-y'
+                ] + inputs + [
+                    '-filter_complex', filter_complex,
+                    '-map', '[final]',
+                    '-map', f'{audio_index}:a',
+                    '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
+                    '-c:a', 'aac', '-b:a', '128k',
+                    '-shortest', '-r', '25',
+                    str(output_path)
+                ]
             
             # Run FFmpeg
             process = await asyncio.create_subprocess_exec(
@@ -283,14 +282,17 @@ async def assemble_video(project_id: str, images: List[dict], audio_base64: str,
             stdout, stderr = await process.communicate()
             
             if process.returncode != 0:
-                logger.error(f"FFmpeg error: {stderr.decode()}")
-                raise Exception(f"Video assembly failed: {stderr.decode()}")
+                error_msg = stderr.decode() if stderr else "Unknown FFmpeg error"
+                logger.error(f"FFmpeg failed: {error_msg}")
+                raise Exception(f"Video assembly failed: {error_msg}")
             
-            # Read and encode video
-            with open(output_path, "rb") as f:
+            # Read the final video and convert to base64
+            with open(output_path, 'rb') as f:
                 video_data = f.read()
             
             video_base64 = base64.b64encode(video_data).decode('utf-8')
+            logger.info(f"Video assembled successfully: {len(video_data)} bytes, {len(video_base64)} base64 chars")
+            
             return video_base64
             
     except Exception as e:
