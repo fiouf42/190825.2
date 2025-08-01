@@ -185,16 +185,33 @@ class VideoAssemblyResult(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 def create_subtitle_file(script_text: str, duration: float) -> str:
-    """Create SRT subtitle file from script"""
-    lines = script_text.split('.')
-    lines = [line.strip() for line in lines if line.strip()]
+    """Create SRT subtitle file from script with TikTok-style timing"""
+    # Split text into words for better TikTok-style appearance
+    words = script_text.replace('\n', ' ').split()
+    if not words:
+        return ""
     
     srt_content = ""
-    time_per_line = duration / len(lines) if lines else duration
     
-    for i, line in enumerate(lines):
-        start_time = i * time_per_line
-        end_time = (i + 1) * time_per_line
+    # For TikTok style, we want shorter segments with more dynamic timing
+    # Group words into smaller chunks (3-5 words per subtitle)
+    words_per_subtitle = 4
+    word_groups = []
+    
+    for i in range(0, len(words), words_per_subtitle):
+        group = ' '.join(words[i:i + words_per_subtitle])
+        word_groups.append(group)
+    
+    if not word_groups:
+        return ""
+    
+    # Calculate timing - TikTok style with quick transitions
+    time_per_group = duration / len(word_groups)
+    overlap = 0.1  # Small overlap for smoother transitions
+    
+    for i, group in enumerate(word_groups):
+        start_time = max(0, i * time_per_group - overlap)
+        end_time = min(duration, (i + 1) * time_per_group + overlap)
         
         # Convert to SRT time format
         start_h = int(start_time // 3600)
@@ -209,7 +226,7 @@ def create_subtitle_file(script_text: str, duration: float) -> str:
         
         srt_content += f"{i + 1}\n"
         srt_content += f"{start_h:02d}:{start_m:02d}:{start_s:02d},{start_ms:03d} --> {end_h:02d}:{end_m:02d}:{end_s:02d},{end_ms:03d}\n"
-        srt_content += f"{line}\n\n"
+        srt_content += f"{group.upper()}\n\n"  # Uppercase for TikTok style
     
     return srt_content
 
