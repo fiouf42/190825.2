@@ -119,9 +119,9 @@ backend:
 
   - task: "OpenAI API key configuration"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/.env"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
@@ -134,6 +134,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ RESOLVED: New OpenAI API key (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) is working correctly. Authentication successful for both script generation and image generation endpoints."
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL: OpenAI API key provided by user (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) is INVALID. Returns 401 Unauthorized for all OpenAI API calls. This blocks script generation, image generation, and complete pipeline. User needs to provide a valid OpenAI API key."
 
   - task: "LLM Chat integration for script generation (GPT-4.1)"
     implemented: true
