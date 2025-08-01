@@ -676,51 +676,63 @@ async def generate_images(script_id: str):
             Composition cinématographique, éclairage contrasté, détails texturés."""
             
             try:
-                # Try gpt-image-1 first, fallback to dall-e-3 if 403 error
-                images = None
-                try:
-                    images = await image_gen.generate_images(
-                        prompt=charcoal_prompt,
-                        model="gpt-image-1",
-                        number_of_images=1
-                    )
-                except Exception as gpt_error:
-                    if "403" in str(gpt_error) or "verification" in str(gpt_error).lower():
-                        logger.info(f"gpt-image-1 requires verification, falling back to dall-e-3")
-                        images = await image_gen.generate_images(
-                            prompt=charcoal_prompt,
-                            model="dall-e-3",
-                            number_of_images=1
-                        )
-                    else:
-                        raise gpt_error
+                # Use direct OpenAI API call since emergentintegrations library has issues
+                import httpx
                 
-                if images and len(images) > 0:
-                    # Handle new OpenAI API structure that returns base64 data directly
-                    image_data = images[0]
-                    image_base64 = ""
+                headers = {
+                    'Authorization': f'Bearer {OPENAI_API_KEY}',
+                    'Content-Type': 'application/json'
+                }
+                
+                # Try gpt-image-1 first, fallback to dall-e-3 if 403 error
+                image_base64 = ""
+                
+                try:
+                    # Try gpt-image-1 first
+                    payload = {
+                        "model": "gpt-image-1",
+                        "prompt": charcoal_prompt,
+                        "n": 1,
+                        "size": "1024x1024",
+                        "response_format": "b64_json"
+                    }
                     
-                    # Check if image_data is already base64 string or bytes
-                    if isinstance(image_data, str):
-                        # Already base64 encoded
-                        image_base64 = image_data
-                    elif isinstance(image_data, bytes):
-                        # Convert bytes to base64
-                        image_base64 = base64.b64encode(image_data).decode('utf-8')
-                    elif hasattr(image_data, 'b64_json') and image_data.b64_json:
-                        # OpenAI response object with b64_json field
-                        image_base64 = image_data.b64_json
-                    elif isinstance(image_data, dict) and 'b64_json' in image_data:
-                        # Dictionary with b64_json field
-                        image_base64 = image_data['b64_json']
-                    else:
-                        logger.error(f"Unexpected image data type: {type(image_data)}")
-                        continue
-                    
-                    # Validate base64 data
-                    if not image_base64 or len(image_base64) < 100:
-                        logger.error(f"Invalid or empty base64 data for image {i}")
-                        continue
+                    async with httpx.AsyncClient(timeout=60.0) as client:
+                        response = await client.post(
+                            'https://api.openai.com/v1/images/generations',
+                            headers=headers,
+                            json=payload
+                        )
+                        
+                        if response.status_code == 403:
+                            logger.info(f"gpt-image-1 requires verification, falling back to dall-e-3")
+                            # Fallback to dall-e-3
+                            payload["model"] = "dall-e-3"
+                            response = await client.post(
+                                'https://api.openai.com/v1/images/generations',
+                                headers=headers,
+                                json=payload
+                            )
+                        
+                        if response.status_code == 200:
+                            data = response.json()
+                            if data.get('data') and len(data['data']) > 0:
+                                image_base64 = data['data'][0].get('b64_json', '')
+                            else:
+                                logger.error(f"No image data in OpenAI response for scene {i}")
+                                continue
+                        else:
+                            logger.error(f"OpenAI API error for scene {i}: {response.status_code} - {response.text}")
+                            continue
+                
+                except Exception as api_error:
+                    logger.error(f"Direct OpenAI API call failed for scene {i}: {str(api_error)}")
+                    continue
+                
+                # Validate base64 data
+                if not image_base64 or len(image_base64) < 100:
+                    logger.error(f"Invalid or empty base64 data for image {i}")
+                    continue
                     
                     # Create image object
                     image_obj = GeneratedImage(
