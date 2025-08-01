@@ -132,9 +132,41 @@ def get_mock_image_data() -> str:
     return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC"
 
 def get_mock_audio_data() -> str:
-    """Generate mock base64 audio data (silent MP3)"""
-    # Minimal silent MP3 in base64 (1 second of silence)
-    return "SUQzAwAAAAAfdlRYWFgAAAASAAABZW5jAFNreUZvdXIgMC4xZlRYWFgAAAASAAABZW5jAFNreUZvdXIgMC4xZgD/80DEAAAAAAPAQAABDUXABTpCIAxIiYaUlJkYUkUaIkYUYIZBEJCCBBGCRAjAjJSkxOXAuXk5c8zMjNjA8PAxIwE/DfxPA3AGCA=="
+    """Generate mock base64 audio data (silent WAV)"""
+    # Create a minimal 1-second silent WAV file (44100 Hz, 16-bit, mono)
+    import struct
+    
+    # WAV header for 1 second of silence at 44100 Hz, 16-bit, mono
+    sample_rate = 44100
+    duration = 1  # 1 second
+    num_samples = sample_rate * duration
+    
+    # WAV file header
+    wav_header = struct.pack('<4sI4s4sIHHIIHH4sI',
+        b'RIFF',           # ChunkID
+        36 + num_samples * 2,  # ChunkSize
+        b'WAVE',           # Format
+        b'fmt ',           # Subchunk1ID
+        16,                # Subchunk1Size (PCM)
+        1,                 # AudioFormat (PCM)
+        1,                 # NumChannels (mono)
+        sample_rate,       # SampleRate
+        sample_rate * 2,   # ByteRate
+        2,                 # BlockAlign
+        16,                # BitsPerSample
+        b'data',           # Subchunk2ID
+        num_samples * 2    # Subchunk2Size
+    )
+    
+    # Silent audio data (all zeros)
+    audio_data = b'\x00' * (num_samples * 2)
+    
+    # Combine header and data
+    wav_data = wav_header + audio_data
+    
+    # Convert to base64
+    import base64
+    return base64.b64encode(wav_data).decode('utf-8')
 
 class GeneratedAudio(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
