@@ -321,10 +321,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "OpenAI Image Generation integration (gpt-image-1)"
-    - "Complete video pipeline endpoint"
-  stuck_tasks:
-    - "OpenAI Image Generation integration (gpt-image-1)"
+    - "FFmpeg video assembly endpoint"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
