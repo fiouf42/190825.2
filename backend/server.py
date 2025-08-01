@@ -262,13 +262,13 @@ async def assemble_video(project_id: str, images: List[dict], audio_base64: str,
             output_path = temp_path / "final_video.mp4"
             
             if len(image_paths) == 1:
-                # Single image video
+                # Single image video with improved TikTok-style subtitles
                 cmd = [
                     'ffmpeg', '-y',
                     '-loop', '1', '-t', str(duration), '-i', str(image_paths[0]),
                     '-i', str(audio_path),
                     '-filter_complex', 
-                    f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0015))':d=25:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)',subtitles='{subtitle_path}':force_style='Fontsize=24,PrimaryColour=&Hffffff&,OutlineColour=&H000000&,BorderStyle=3'[final]",
+                    f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0015))':d=25:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)',subtitles='{subtitle_path}':force_style='Fontname=Arial Black,Fontsize=36,Bold=1,PrimaryColour=&Hffffff&,OutlineColour=&H000000&,BackColour=&H000000&,Outline=3,Shadow=2,Alignment=2,MarginV=120'[final]",
                     '-map', '[final]',
                     '-map', '1:a',
                     '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
