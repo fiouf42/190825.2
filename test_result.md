@@ -315,14 +315,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "OpenAI API key configuration"
-    - "ElevenLabs voice generation endpoint"
-    - "LLM Chat integration for script generation (GPT-4.1)"
     - "OpenAI Image Generation integration (gpt-image-1)"
     - "Complete video pipeline endpoint"
   stuck_tasks:
-    - "OpenAI API key configuration"
-    - "ElevenLabs voice generation endpoint"
+    - "OpenAI Image Generation integration (gpt-image-1)"
   test_all: false
   test_priority: "high_first"
 
