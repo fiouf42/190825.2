@@ -137,7 +137,7 @@ backend:
 
   - task: "LLM Chat integration for script generation (GPT-4.1)"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
@@ -152,6 +152,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "❌ BLOCKED: Script generation fails due to invalid OpenAI API key (401 Unauthorized). The LlmChat implementation is correct but cannot function without valid API credentials."
+      - working: true
+        agent: "testing"
+        comment: "✅ CONFIRMED WORKING: With new OpenAI API key, GPT-4.1 script generation is fully functional. Generates high-quality French scripts with proper scene breakdown. Tested with prompt 'astuces productivité étudiants' - produced 816 character script with proper structure."
 
   - task: "OpenAI Image Generation integration (gpt-image-1)"
     implemented: true
