@@ -689,13 +689,12 @@ async def generate_images(script_id: str):
                 image_base64 = ""
                 
                 try:
-                    # Try gpt-image-1 first
+                    # Try gpt-image-1 first (without response_format parameter)
                     payload = {
                         "model": "gpt-image-1",
                         "prompt": charcoal_prompt,
                         "n": 1,
-                        "size": "1024x1024",
-                        "response_format": "b64_json"
+                        "size": "1024x1024"
                     }
                     
                     async with httpx.AsyncClient(timeout=60.0) as client:
@@ -707,8 +706,29 @@ async def generate_images(script_id: str):
                         
                         if response.status_code == 403:
                             logger.info(f"gpt-image-1 requires verification, falling back to dall-e-3")
-                            # Fallback to dall-e-3
-                            payload["model"] = "dall-e-3"
+                            # Fallback to dall-e-3 (with response_format parameter)
+                            payload = {
+                                "model": "dall-e-3",
+                                "prompt": charcoal_prompt,
+                                "n": 1,
+                                "size": "1024x1024",
+                                "response_format": "b64_json"
+                            }
+                            response = await client.post(
+                                'https://api.openai.com/v1/images/generations',
+                                headers=headers,
+                                json=payload
+                            )
+                        elif response.status_code == 400 and "response_format" in response.text:
+                            logger.info(f"gpt-image-1 doesn't support response_format, falling back to dall-e-3")
+                            # Fallback to dall-e-3 (with response_format parameter)
+                            payload = {
+                                "model": "dall-e-3",
+                                "prompt": charcoal_prompt,
+                                "n": 1,
+                                "size": "1024x1024",
+                                "response_format": "b64_json"
+                            }
                             response = await client.post(
                                 'https://api.openai.com/v1/images/generations',
                                 headers=headers,
@@ -718,7 +738,22 @@ async def generate_images(script_id: str):
                         if response.status_code == 200:
                             data = response.json()
                             if data.get('data') and len(data['data']) > 0:
-                                image_base64 = data['data'][0].get('b64_json', '')
+                                # Handle different response formats
+                                first_image = data['data'][0]
+                                if 'b64_json' in first_image:
+                                    image_base64 = first_image['b64_json']
+                                elif 'url' in first_image:
+                                    # If we get URL instead of base64, we need to download it
+                                    image_url = first_image['url']
+                                    img_response = await client.get(image_url)
+                                    if img_response.status_code == 200:
+                                        image_base64 = base64.b64encode(img_response.content).decode('utf-8')
+                                    else:
+                                        logger.error(f"Failed to download image from URL for scene {i}")
+                                        continue
+                                else:
+                                    logger.error(f"No b64_json or url in OpenAI response for scene {i}")
+                                    continue
                             else:
                                 logger.error(f"No image data in OpenAI response for scene {i}")
                                 continue
