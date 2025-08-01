@@ -220,7 +220,7 @@ async def assemble_video(project_id: str, images: List[dict], audio_base64: str,
             temp_path = Path(temp_dir)
             
             # Save audio file
-            audio_path = temp_path / "audio.mp3"
+            audio_path = temp_path / "audio.wav"
             audio_data = base64.b64decode(audio_base64)
             with open(audio_path, "wb") as f:
                 f.write(audio_data)
