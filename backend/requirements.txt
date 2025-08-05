@@ -10,3 +10,8 @@ emergentintegrations
 elevenlabs==1.8.2
 ffmpeg-python==0.2.0
 python-multipart==0.0.6
+litellm==1.56.3
+websockets==14.1
+future==1.0.0
+httpx==0.28.1
+asyncio-throttle==1.0.2
