@@ -246,7 +246,11 @@ async def assemble_video(project_id: str, images: List[dict], audio_base64: str,
             image_paths = []
             for i, image in enumerate(images):
                 img_path = temp_path / f"image_{i}.png"
-                img_data = base64.b64decode(image['image_base64'])
+                # Handle both dict and Pydantic object formats
+                if hasattr(image, 'image_base64'):
+                    img_data = base64.b64decode(image.image_base64)
+                else:
+                    img_data = base64.b64decode(image['image_base64'])
                 with open(img_path, "wb") as f:
                     f.write(img_data)
                 image_paths.append(img_path)
