@@ -142,7 +142,7 @@ backend:
         comment: "✅ CONFIRMED WORKING: Latest OpenAI API key (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) is FULLY FUNCTIONAL. No 401 Unauthorized errors. GPT-4.1 script generation working perfectly (1147+ chars). OpenAI image generation working with dall-e-3 fallback (4 images generated successfully). Authentication resolved completely."
       - working: false
         agent: "testing"
-        comment: "❌ CRITICAL: NEW OpenAI API key provided by user (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) has EXCEEDED QUOTA. Returns 'RateLimitError: You exceeded your current quota, please check your plan and billing details.' This blocks all script generation, image generation, and complete pipeline. User needs to check billing/quota or provide a different OpenAI API key with available credits."
+        comment: "❌ BLOCKED: OpenAI API key (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) has EXCEEDED QUOTA. Returns 'RateLimitError: You exceeded your current quota, please check your plan and billing details.' This blocks all script generation, image generation, and complete pipeline. User needs to check billing/quota or provide a different OpenAI API key with available credits."
 
   - task: "LLM Chat integration for script generation (GPT-4.1)"
     implemented: true
