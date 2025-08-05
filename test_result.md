@@ -146,9 +146,9 @@ backend:
 
   - task: "LLM Chat integration for script generation (GPT-4.1)"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
@@ -167,6 +167,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ FINAL CONFIRMATION: GPT-4.1 script generation working perfectly with latest API key. Generated 1147+ character script with proper French content and scene breakdown. No authentication issues. Endpoint fully functional."
+      - working: false
+        agent: "testing"
+        comment: "❌ BLOCKED: Script generation fails due to OpenAI API quota exceeded. Error: 'RateLimitError: You exceeded your current quota, please check your plan and billing details.' The GPT-4.1 implementation is correct but cannot function without available OpenAI credits. User needs to check billing/quota or provide different API key."
 
   - task: "OpenAI Image Generation integration (gpt-image-1)"
     implemented: true
