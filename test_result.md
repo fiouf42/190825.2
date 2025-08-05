@@ -173,9 +173,9 @@ backend:
 
   - task: "OpenAI Image Generation integration (gpt-image-1)"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
@@ -200,6 +200,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ FINAL CONFIRMATION: OpenAI image generation fully functional with latest API key. Successfully generated 4 images with large base64 data (2-3MB each). gpt-image-1 falls back to dall-e-3 as expected (403 verification). No authentication issues. Charcoal style prompts working correctly."
+      - working: false
+        agent: "testing"
+        comment: "❌ BLOCKED: Image generation fails due to OpenAI API quota exceeded. Error: 'RateLimitError: You exceeded your current quota, please check your plan and billing details.' The image generation implementation (direct OpenAI API calls with charcoal style prompts and dall-e-3 fallback) is correct but cannot function without available OpenAI credits. User needs to check billing/quota or provide different API key."
 
   - task: "Database models for scripts, images, and projects"
     implemented: true
