@@ -169,7 +169,7 @@ backend:
         comment: "✅ FINAL CONFIRMATION: GPT-4.1 script generation working perfectly with latest API key. Generated 1147+ character script with proper French content and scene breakdown. No authentication issues. Endpoint fully functional."
       - working: false
         agent: "testing"
-        comment: "❌ BLOCKED: Script generation fails due to OpenAI API quota exceeded. Error: 'RateLimitError: You exceeded your current quota, please check your plan and billing details.' The GPT-4.1 implementation is correct but cannot function without available OpenAI credits. User needs to check billing/quota or provide different API key."
+        comment: "❌ BLOCKED: Script generation fails due to OpenAI API quota exceeded (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). Error: 'RateLimitError: You exceeded your current quota, please check your plan and billing details.' The GPT-4.1 implementation is correct but cannot function without available OpenAI credits. User needs to check billing/quota or provide different API key."
 
   - task: "OpenAI Image Generation integration (gpt-image-1)"
     implemented: true
