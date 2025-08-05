@@ -7,7 +7,7 @@ import requests
 import json
 import time
 
-BACKEND_URL = "https://5df54ba3-897c-4805-b2d5-ffbd6fd6461c.preview.emergentagent.com/api"
+BACKEND_URL = "https://0280dc01-f7fd-4b8a-9b53-8b0d086b38ea.preview.emergentagent.com/api"
 
 def test_single_image_generation():
     """Test image generation with a simple script"""
