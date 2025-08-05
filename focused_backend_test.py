@@ -7,7 +7,7 @@ import requests
 import json
 import time
 
-BACKEND_URL = "https://0280dc01-f7fd-4b8a-9b53-8b0d086b38ea.preview.emergentagent.com/api"
+BACKEND_URL = "https://00eb60f7-eab0-46f7-8790-e33187771154.preview.emergentagent.com/api"
 
 def test_working_components():
     """Test the components that should be working"""

@@ -11,7 +11,7 @@ import sys
 from typing import Dict, Any
 
 # Configuration
-BACKEND_URL = "https://0280dc01-f7fd-4b8a-9b53-8b0d086b38ea.preview.emergentagent.com/api"
+BACKEND_URL = "https://00eb60f7-eab0-46f7-8790-e33187771154.preview.emergentagent.com/api"
 TIMEOUT = 60  # seconds for API calls
 
 class TikTokAPITester:
