@@ -375,8 +375,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Complete video pipeline endpoint"
-  stuck_tasks: []
+    - "OpenAI API key configuration"
+  stuck_tasks: 
+    - "OpenAI API key configuration"
   test_all: false
   test_priority: "high_first"
 
