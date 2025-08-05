@@ -419,13 +419,145 @@ class TikTokAPITester:
             self.log_test("Real Voice Generation", False, f"Error: {str(e)}")
             return {}
 
+    def test_complete_video_pipeline(self, prompt: str = "astuces productivité étudiants", duration: int = 30) -> Dict[str, Any]:
+        """Test the COMPLETE video pipeline endpoint with NEW OpenAI API key"""
+        try:
+            payload = {
+                "prompt": prompt,
+                "duration": duration
+            }
+            
+            print(f"🎯 TESTING COMPLETE VIDEO PIPELINE with NEW OpenAI API key")
+            print(f"   Prompt: '{prompt}' ({duration}s)")
+            print(f"   Expected: Script (GPT-4.1) → Images (OpenAI charcoal style) → Voice (ElevenLabs Nicolas) → Video (FFmpeg TikTok format)")
+            
+            response = self.session.post(
+                f"{self.base_url}/create-complete-video",
+                json=payload,
+                timeout=TIMEOUT * 4  # Extended timeout for complete pipeline
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Validate response structure
+                required_fields = ["project_id", "script", "images", "audio", "video", "status"]
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    self.log_test("Complete Pipeline - Structure", False, f"Missing fields: {missing_fields}")
+                    return {}
+                
+                # Validate status
+                if data.get("status") != "completed":
+                    self.log_test("Complete Pipeline - Status", False, f"Status: {data.get('status')}")
+                    return {}
+                
+                # Validate script component (GPT-4.1)
+                script = data.get("script", {})
+                if not script or not script.get("script_text") or not script.get("scenes"):
+                    self.log_test("Complete Pipeline - Script (GPT-4.1)", False, "Invalid script data")
+                    return {}
+                
+                script_text = script.get("script_text", "")
+                scenes = script.get("scenes", [])
+                if len(script_text) < 500:  # Expect substantial French script
+                    self.log_test("Complete Pipeline - Script Quality", False, f"Script too short: {len(script_text)} chars")
+                    return {}
+                
+                self.log_test("Complete Pipeline - Script (GPT-4.1)", True, f"Generated {len(scenes)} scenes, {len(script_text)} chars")
+                
+                # Validate images component (OpenAI charcoal style)
+                images = data.get("images", [])
+                if len(images) == 0:
+                    self.log_test("Complete Pipeline - Images (OpenAI)", False, "No images generated")
+                    return {}
+                
+                # Check image quality and charcoal style
+                valid_images = 0
+                for i, img in enumerate(images):
+                    if not img.get("image_base64") or len(img.get("image_base64", "")) < 1000:
+                        self.log_test(f"Complete Pipeline - Image {i+1} Quality", False, f"Invalid base64 data")
+                        continue
+                    
+                    # Check charcoal style in prompt
+                    prompt_text = img.get("prompt", "").lower()
+                    charcoal_keywords = ["charbon", "noir", "gris", "blanc", "granuleux", "fusain"]
+                    if not any(keyword in prompt_text for keyword in charcoal_keywords):
+                        self.log_test(f"Complete Pipeline - Image {i+1} Style", False, "Missing charcoal style")
+                        continue
+                    
+                    valid_images += 1
+                
+                if valid_images == 0:
+                    self.log_test("Complete Pipeline - Images (OpenAI)", False, "No valid images with charcoal style")
+                    return {}
+                
+                self.log_test("Complete Pipeline - Images (OpenAI)", True, f"Generated {valid_images} valid charcoal-style images")
+                
+                # Validate audio component (ElevenLabs)
+                audio = data.get("audio", {})
+                if not audio or not audio.get("audio_id") or not audio.get("duration"):
+                    self.log_test("Complete Pipeline - Audio (ElevenLabs)", False, "Invalid audio data")
+                    return {}
+                
+                audio_duration = audio.get("duration", 0)
+                if audio_duration < 10:  # Expect reasonable duration
+                    self.log_test("Complete Pipeline - Audio Duration", False, f"Audio too short: {audio_duration}s")
+                    return {}
+                
+                self.log_test("Complete Pipeline - Audio (ElevenLabs)", True, f"Generated {audio_duration}s audio with voice {audio.get('voice_id', 'unknown')}")
+                
+                # Validate video component (FFmpeg TikTok format)
+                video = data.get("video", {})
+                if not video or not video.get("video_base64") or not video.get("resolution"):
+                    self.log_test("Complete Pipeline - Video (FFmpeg)", False, "Invalid video data")
+                    return {}
+                
+                video_base64 = video.get("video_base64", "")
+                if len(video_base64) < 10000:  # Expect substantial video data
+                    self.log_test("Complete Pipeline - Video Size", False, f"Video too small: {len(video_base64)} chars")
+                    return {}
+                
+                resolution = video.get("resolution", "")
+                if resolution != "1080x1920":
+                    self.log_test("Complete Pipeline - Video Format", False, f"Wrong resolution: {resolution}, expected 1080x1920")
+                    return {}
+                
+                video_duration = video.get("duration", 0)
+                if abs(video_duration - audio_duration) > 5:  # Allow 5s tolerance
+                    self.log_test("Complete Pipeline - Video/Audio Sync", False, f"Duration mismatch: video {video_duration}s vs audio {audio_duration}s")
+                    return {}
+                
+                self.log_test("Complete Pipeline - Video (FFmpeg)", True, f"Generated {video_duration}s TikTok video ({len(video_base64)} chars, {resolution})")
+                
+                # Overall success
+                self.log_test("🎉 COMPLETE VIDEO PIPELINE", True, f"Full end-to-end pipeline successful: Script → {len(images)} Images → {audio_duration}s Audio → {resolution} Video")
+                
+                return data
+            else:
+                error_text = response.text
+                if "401" in error_text and "unauthorized" in error_text.lower():
+                    self.log_test("Complete Pipeline - OpenAI API Key", False, "OpenAI API key is INVALID (401 Unauthorized)")
+                elif "403" in error_text:
+                    self.log_test("Complete Pipeline - API Access", False, "API access forbidden (403)")
+                else:
+                    self.log_test("Complete Pipeline", False, f"Status: {response.status_code}, Response: {response.text}")
+                return {}
+                
+        except Exception as e:
+            self.log_test("Complete Pipeline", False, f"Error: {str(e)}")
+            return {}
+
     def run_comprehensive_test(self):
-        """Run focused tests on mock pipeline system"""
-        print("=" * 60)
-        print("TikTok Video Generator - MOCK PIPELINE TESTING")
-        print("=" * 60)
+        """Run focused tests on COMPLETE VIDEO PIPELINE with NEW OpenAI API key"""
+        print("=" * 80)
+        print("🎬 TikTok Video Generator - COMPLETE PIPELINE TESTING WITH NEW OPENAI API KEY")
+        print("=" * 80)
         print(f"Testing API at: {self.base_url}")
-        print("Focus: Mock pipeline system validation")
+        print("🔑 NEW OpenAI API Key: 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")
+        print("🎯 Focus: Complete video pipeline validation")
+        print("📋 Expected: Script (GPT-4.1 French) → Images (OpenAI charcoal style) → Voice (ElevenLabs Nicolas) → Video (FFmpeg TikTok)")
         print()
         
         # Test 1: API Health
@@ -435,32 +567,42 @@ class TikTokAPITester:
         
         print()
         
-        # Test 2: PRIORITY - Mock Pipeline Test
-        print("🎯 PRIORITY TEST: Mock Pipeline System")
-        mock_pipeline_data = self.test_mock_pipeline("astuces productivité étudiants", 30)
-        if not mock_pipeline_data:
-            print("❌ Mock pipeline failed. This is the main focus.")
-            return False
-        
-        print()
-        
-        # Test 3: ElevenLabs Voices (should work with new API key)
-        print("🔊 Testing ElevenLabs Voice Fetching")
+        # Test 2: ElevenLabs Voices (should work - 19 voices expected)
+        print("🔊 Testing ElevenLabs Voice Availability")
         voices_data = self.test_voices_available()
         if not voices_data:
-            print("❌ Voice fetching failed.")
+            print("❌ Voice fetching failed - this will block voice generation.")
+        else:
+            print(f"✅ ElevenLabs API working - {len(voices_data.get('voices', []))} voices available")
         
         print()
         
-        # Test 4: Real Voice Generation (only if mock pipeline works)
-        if mock_pipeline_data and mock_pipeline_data.get("script"):
-            script_id = mock_pipeline_data["script"].get("id")
-            if script_id:
-                print("🎤 Testing REAL ElevenLabs Voice Generation")
-                print("   (Only testing if mock pipeline succeeded)")
-                real_voice_data = self.test_real_voice_generation(script_id)
-                if not real_voice_data:
-                    print("   Note: Real voice generation may fail due to API limitations")
+        # Test 3: PRIORITY - Complete Video Pipeline Test
+        print("🎯 PRIORITY TEST: Complete Video Pipeline with NEW OpenAI API Key")
+        print("   Testing: /api/create-complete-video")
+        print("   Prompt: 'astuces productivité étudiants' (30s)")
+        complete_pipeline_data = self.test_complete_video_pipeline("astuces productivité étudiants", 30)
+        
+        if not complete_pipeline_data:
+            print("❌ Complete pipeline failed. This is the main focus.")
+            print("   Checking individual components...")
+            
+            # Fallback: Test individual components to identify the issue
+            print("\n🔍 DIAGNOSTIC: Testing individual components...")
+            
+            # Test script generation
+            script_data = self.test_generate_script("astuces productivité étudiants", 30)
+            if script_data:
+                print("✅ Script generation working")
+                
+                # Test image generation
+                images_data = self.test_generate_images(script_data.get("id"))
+                if images_data:
+                    print("✅ Image generation working")
+                else:
+                    print("❌ Image generation failed - likely OpenAI API key issue")
+            else:
+                print("❌ Script generation failed - likely OpenAI API key issue")
         
         print()
         
@@ -468,25 +610,45 @@ class TikTokAPITester:
         total_tests = len(self.test_results)
         passed_tests = sum(1 for result in self.test_results if result["success"])
         
-        print("=" * 60)
-        print("MOCK PIPELINE TEST SUMMARY")
-        print("=" * 60)
+        print("=" * 80)
+        print("🎬 COMPLETE PIPELINE TEST SUMMARY")
+        print("=" * 80)
         print(f"Total Tests: {total_tests}")
         print(f"Passed: {passed_tests}")
         print(f"Failed: {total_tests - passed_tests}")
         print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
         
-        # Focus on mock pipeline result
-        mock_pipeline_success = any(
-            result["test"] == "Mock Pipeline Test" and result["success"] 
+        # Focus on complete pipeline result
+        complete_pipeline_success = any(
+            result["test"] == "🎉 COMPLETE VIDEO PIPELINE" and result["success"] 
             for result in self.test_results
         )
         
-        if mock_pipeline_success:
-            print("🎉 MOCK PIPELINE TEST PASSED - Ready for production!")
+        if complete_pipeline_success:
+            print("🎉 COMPLETE VIDEO PIPELINE TEST PASSED!")
+            print("✅ NEW OpenAI API key is working correctly")
+            print("✅ Script generation (GPT-4.1) working")
+            print("✅ Image generation (OpenAI charcoal style) working") 
+            print("✅ Voice generation (ElevenLabs) working")
+            print("✅ Video assembly (FFmpeg TikTok format) working")
+            print("✅ Pipeline ready for frontend integration!")
             return True
         else:
-            print("⚠️  MOCK PIPELINE TEST FAILED - Needs attention before production.")
+            print("⚠️  COMPLETE VIDEO PIPELINE TEST FAILED")
+            
+            # Check if it's specifically an OpenAI API key issue
+            openai_key_issue = any(
+                "OpenAI API key is INVALID" in result["details"] 
+                for result in self.test_results if not result["success"]
+            )
+            
+            if openai_key_issue:
+                print("❌ CRITICAL: OpenAI API key provided by user is INVALID")
+                print("   The key returns 401 Unauthorized errors")
+                print("   User needs to provide a valid OpenAI API key")
+            else:
+                print("❌ Pipeline has other issues that need attention")
+            
             return False
 
 def main():
