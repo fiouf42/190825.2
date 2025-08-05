@@ -265,7 +265,7 @@ backend:
         comment: "❌ BLOCKED: POST /api/generate-voice fails due to ElevenLabs free tier being disabled. API returns 401 with message 'Unusual activity detected. Free Tier usage disabled.' This is a third-party API limitation, not a code issue. The implementation is correct but requires a paid ElevenLabs subscription."
       - working: true
         agent: "testing"
-        comment: "✅ CONFIRMED WORKING: With new ElevenLabs API key (sk_0ac8438144cbed68081b6b1bca798a1a81738fb00b5dac8d), voice generation is fully functional. Successfully generated 101.3s audio (1,638,460 chars base64) using voice ID pNInz6obpgDQGcFmaJgB. Real ElevenLabs API integration working perfectly."
+        comment: "✅ CONFIRMED WORKING: With new ElevenLabs API key (sk_0ac8438144cbed68081b6b1bca798a1a81738fb00b5dac8d), voice generation is fully functional. Successfully generated 101.3s audio (1,602,796 chars base64) using voice ID pNInz6obpgDQGcFmaJgB. Real ElevenLabs API integration working perfectly with 19 voices available."
 
   - task: "FFmpeg video assembly endpoint"
     implemented: true
