@@ -171,8 +171,10 @@ function App() {
                   >
                     {availableVoices.map((voice) => (
                       <option key={voice.voice_id} value={voice.voice_id}>
-                        {voice.name} - {voice.labels?.gender || 'Unknown'} 
+                        {voice.name}
+                        {voice.labels?.gender && ` - ${voice.labels.gender}`}
                         {voice.labels?.accent && ` (${voice.labels.accent})`}
+                        {voice.labels?.age && ` - ${voice.labels.age}`}
                       </option>
                     ))}
                   </select>
