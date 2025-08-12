@@ -62,6 +62,13 @@ class VideoProject(BaseModel):
     status: str = "generating"  # generating, completed, failed
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+# Configure logging first
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # Initialize OpenAI and ElevenLabs clients
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')
@@ -71,8 +78,14 @@ if not OPENAI_API_KEY:
 if not ELEVENLABS_API_KEY:
     raise ValueError("ELEVENLABS_API_KEY not found in environment variables")
 
-# Initialize clients
-openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+# Initialize clients with error handling
+try:
+    openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+    logger.info("OpenAI client initialized successfully")
+except Exception as e:
+    logger.error(f"Error initializing OpenAI client: {e}")
+    # Try with minimal parameters
+    openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 # Voice models - we'll try to find Nicolas voice or use a good French male voice
 FRENCH_VOICE_ID = "pNInz6obpgDQGcFmaJgB"  # Adam - male English (we'll update this after testing)
