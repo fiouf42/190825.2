@@ -7,7 +7,7 @@ import requests
 import json
 import time
 
-BACKEND_URL = "https://00eb60f7-eab0-46f7-8790-e33187771154.preview.emergentagent.com/api"
+BACKEND_URL = "https://content-forge-79.preview.emergentagent.com/api"
 
 def test_complete_video_pipeline():
     """Test the complete video pipeline"""

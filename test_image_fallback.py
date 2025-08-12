@@ -6,7 +6,7 @@ Test script to check if DALL-E 3 works as fallback for image generation
 import requests
 import json
 
-BACKEND_URL = "https://00eb60f7-eab0-46f7-8790-e33187771154.preview.emergentagent.com/api"
+BACKEND_URL = "https://content-forge-79.preview.emergentagent.com/api"
 
 def test_dalle3_fallback():
     """Test if we can modify the backend to use DALL-E 3 instead"""
