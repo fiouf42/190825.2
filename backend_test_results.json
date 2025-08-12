@@ -1,0 +1,46 @@
+{
+  "summary": {
+    "passed": 0,
+    "total": 6,
+    "success_rate": 0.0,
+    "timestamp": "2025-08-12T12:38:27.958541"
+  },
+  "detailed_results": {
+    "Health Check (GET /api/)": {
+      "success": false,
+      "details": "Status: 502",
+      "duration": 0.058010101318359375,
+      "timestamp": "2025-08-12T12:38:27.933075"
+    },
+    "Available Voices (GET /api/voices/available)": {
+      "success": false,
+      "details": "Status: 502, Error: ",
+      "duration": 0.009602546691894531,
+      "timestamp": "2025-08-12T12:38:27.942792"
+    },
+    "Script Generation (POST /api/generate-script)": {
+      "success": false,
+      "details": "Status: 502, Error: ",
+      "duration": 0.008986949920654297,
+      "timestamp": "2025-08-12T12:38:27.951876"
+    },
+    "Image Generation (POST /api/generate-images)": {
+      "success": false,
+      "details": "No script_id available from previous test",
+      "duration": 0,
+      "timestamp": "2025-08-12T12:38:27.951921"
+    },
+    "Voice Generation (POST /api/generate-voice)": {
+      "success": false,
+      "details": "No script_id available from previous test",
+      "duration": 0,
+      "timestamp": "2025-08-12T12:38:27.951932"
+    },
+    "Complete Video Pipeline (POST /api/create-complete-video)": {
+      "success": false,
+      "details": "Status: 502, Error: ",
+      "duration": 0.006338834762573242,
+      "timestamp": "2025-08-12T12:38:27.958363"
+    }
+  }
+}
