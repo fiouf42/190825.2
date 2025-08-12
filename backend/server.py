@@ -10,8 +10,7 @@ from typing import List, Optional
 import uuid
 from datetime import datetime
 import base64
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
+from openai import AsyncOpenAI
 from elevenlabs.client import AsyncElevenLabs
 import ffmpeg
 import tempfile
@@ -63,110 +62,20 @@ class VideoProject(BaseModel):
     status: str = "generating"  # generating, completed, failed
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-# Initialize OpenAI services
+# Initialize OpenAI and ElevenLabs clients
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')
-USE_MOCK_DATA = os.environ.get('USE_MOCK_DATA', 'false').lower() == 'true'
 
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY not found in environment variables")
 if not ELEVENLABS_API_KEY:
     raise ValueError("ELEVENLABS_API_KEY not found in environment variables")
 
+# Initialize clients
+openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+
 # Voice models - we'll try to find Nicolas voice or use a good French male voice
 FRENCH_VOICE_ID = "pNInz6obpgDQGcFmaJgB"  # Adam - male English (we'll update this after testing)
-
-def get_mock_script_data(prompt: str, duration: int) -> dict:
-    """Generate mock script data for testing"""
-    mock_scripts = {
-        "productivité étudiants": {
-            "script_text": """Salut tout le monde ! Aujourd'hui, je vais partager avec vous mes 5 meilleures astuces de productivité pour les étudiants. Ces techniques m'ont aidé à doubler mon efficacité et à réduire mon stress.
-
-Première astuce : la technique Pomodoro. Travaillez pendant 25 minutes, puis prenez une pause de 5 minutes. Cette méthode améliore votre concentration et évite la fatigue mentale.
-
-Deuxième astuce : planifiez votre journée la veille. Préparez votre liste de tâches et organisez vos priorités. Vous gagnerez un temps précieux le matin.
-
-Troisième astuce : créez un espace de travail dédié. Un environnement propre et organisé stimule votre productivité et votre motivation.
-
-Quatrième astuce : utilisez la règle des 2 minutes. Si une tâche prend moins de 2 minutes, faites-la immédiatement plutôt que de la reporter.
-
-Cinquième astuce : prenez soin de votre sommeil. Un bon repos améliore votre mémoire et votre capacité d'apprentissage. Essayez ces conseils et dites-moi lesquels fonctionnent le mieux pour vous !""",
-            "scenes": [
-                "Introduction aux astuces de productivité pour étudiants",
-                "Technique Pomodoro : 25 minutes de travail, 5 minutes de pause",
-                "Planification de la journée : préparer sa liste de tâches la veille",
-                "Espace de travail dédié : environnement propre et organisé",
-                "Règle des 2 minutes : faire immédiatement les tâches courtes",
-                "Importance du sommeil : repos pour améliorer mémoire et apprentissage"
-            ]
-        },
-        "default": {
-            "script_text": f"""Bienvenue dans cette nouvelle vidéo ! Aujourd'hui, nous allons explorer le sujet fascinant : {prompt}.
-
-Cette vidéo de {duration} secondes va vous donner les informations essentielles et des conseils pratiques. Nous allons découvrir les aspects les plus importants de ce sujet.
-
-Premièrement, nous aborderons les bases fondamentales. Il est crucial de comprendre les concepts clés avant d'aller plus loin.
-
-Ensuite, nous verrons des applications pratiques. Ces exemples concrets vous aideront à mieux saisir les enjeux.
-
-Enfin, nous conclurons avec des conseils pour aller plus loin. N'hésitez pas à liker et vous abonner si cette vidéo vous a plu !""",
-            "scenes": [
-                f"Introduction au sujet : {prompt}",
-                "Présentation des bases fondamentales et concepts clés",
-                "Applications pratiques avec exemples concrets",
-                "Conseils pour approfondir le sujet"
-            ]
-        }
-    }
-    
-    # Find best matching script
-    for key, data in mock_scripts.items():
-        if key in prompt.lower():
-            return data
-    
-    return mock_scripts["default"]
-
-def get_mock_image_data() -> str:
-    """Generate mock base64 image data (1x1 black pixel PNG)"""
-    # Minimal 1x1 black PNG in base64
-    return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC"
-
-def get_mock_audio_data() -> str:
-    """Generate mock base64 audio data (silent WAV)"""
-    # Create a minimal 1-second silent WAV file (44100 Hz, 16-bit, mono)
-    import struct
-    
-    # WAV header for 1 second of silence at 44100 Hz, 16-bit, mono
-    sample_rate = 44100
-    duration = 1  # 1 second
-    num_samples = sample_rate * duration
-    
-    # WAV file header
-    wav_header = struct.pack('<4sI4s4sIHHIIHH4sI',
-        b'RIFF',           # ChunkID
-        36 + num_samples * 2,  # ChunkSize
-        b'WAVE',           # Format
-        b'fmt ',           # Subchunk1ID
-        16,                # Subchunk1Size (PCM)
-        1,                 # AudioFormat (PCM)
-        1,                 # NumChannels (mono)
-        sample_rate,       # SampleRate
-        sample_rate * 2,   # ByteRate
-        2,                 # BlockAlign
-        16,                # BitsPerSample
-        b'data',           # Subchunk2ID
-        num_samples * 2    # Subchunk2Size
-    )
-    
-    # Silent audio data (all zeros)
-    audio_data = b'\x00' * (num_samples * 2)
-    
-    # Combine header and data
-    wav_data = wav_header + audio_data
-    
-    # Convert to base64
-    import base64
-    return base64.b64encode(wav_data).decode('utf-8')
 
 class GeneratedAudio(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -370,53 +279,39 @@ async def root():
 @api_router.post("/generate-script", response_model=GeneratedScript)
 async def generate_script(request: VideoGenerationRequest):
     try:
-        if USE_MOCK_DATA:
-            # Use mock data for testing
-            logger.info("Using mock data for script generation")
-            mock_data = get_mock_script_data(request.prompt, request.duration)
-            
-            script_obj = GeneratedScript(
-                prompt=request.prompt,
-                duration=request.duration,
-                script_text=mock_data["script_text"],
-                scenes=mock_data["scenes"]
-            )
-            
-            await db.scripts.insert_one(script_obj.dict())
-            return script_obj
-        
-        # Original OpenAI implementation
-        # Initialize LLM Chat with GPT-4.1
-        chat = LlmChat(
-            api_key=OPENAI_API_KEY,
-            session_id=f"script-gen-{uuid.uuid4()}",
-            system_message="""Tu es un expert en création de contenu TikTok. Tu crées des scripts engageants et viraux pour des vidéos courtes.
-            
-            INSTRUCTIONS:
-            1. Crée un script structuré avec des scènes distinctes
-            2. Chaque scène doit être visuelle et impactante  
-            3. Le ton doit être dynamique et captivant
-            4. Adapte la durée selon le nombre de secondes demandées
-            5. Divise le script en 3-5 scènes maximum
-            6. Chaque scène doit pouvoir être illustrée par une image
-            
-            FORMAT DE RÉPONSE:
-            Script: [Le script complet]
-            
-            Scènes:
-            1. [Description de la scène 1]
-            2. [Description de la scène 2]
-            etc."""
-        ).with_model("openai", "gpt-4.1")
-
-        user_message = UserMessage(
-            text=f"Crée un script TikTok de {request.duration} secondes pour le sujet suivant: {request.prompt}"
+        # Use OpenAI ChatCompletion API for script generation
+        response = await openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """Tu es un expert en création de contenu TikTok. Tu crées des scripts engageants et viraux pour des vidéos courtes.
+                    
+                    INSTRUCTIONS:
+                    1. Crée un script structuré avec des scènes distinctes
+                    2. Chaque scène doit être visuelle et impactante  
+                    3. Le ton doit être dynamique et captivant
+                    4. Adapte la durée selon le nombre de secondes demandées
+                    5. Divise le script en 3-5 scènes maximum
+                    6. Chaque scène doit pouvoir être illustrée par une image
+                    
+                    FORMAT DE RÉPONSE:
+                    Script: [Le script complet]
+                    
+                    Scènes:
+                    1. [Description de la scène 1]
+                    2. [Description de la scène 2]
+                    etc."""
+                },
+                {
+                    "role": "user",
+                    "content": f"Crée un script TikTok de {request.duration} secondes pour le sujet suivant: {request.prompt}"
+                }
+            ]
         )
-
-        response = await chat.send_message(user_message)
         
         # Parse response to extract script and scenes
-        response_text = str(response)
+        response_text = response.choices[0].message.content
         script_text = ""
         scenes = []
         
@@ -457,95 +352,8 @@ async def generate_script(request: VideoGenerationRequest):
         logger.error(f"Error generating script: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating script: {str(e)}")
 
-@api_router.post("/test-mock-pipeline")
-async def test_mock_pipeline(request: VideoGenerationRequest):
-    """Test complete pipeline with mock data before using real APIs"""
-    try:
-        logger.info("Testing complete pipeline with mock data")
-        
-        # Step 1: Generate mock script
-        script_response = await generate_script(request)
-        script_id = script_response.id
-        logger.info(f"✅ Mock script generated: {script_id}")
-        
-        # Step 2: Generate mock images
-        images_response = await generate_images(script_id)
-        logger.info(f"✅ Mock images generated: {images_response['total_generated']} images")
-        
-        # Step 3: Generate mock voice (using real API but simple test)
-        mock_audio_data = get_mock_audio_data()
-        
-        # Create mock audio object
-        audio_obj = GeneratedAudio(
-            script_id=script_id,
-            audio_base64=mock_audio_data,
-            voice_id="mock_voice",
-            duration=30.0
-        )
-        
-        await db.audio.insert_one(audio_obj.dict())
-        logger.info(f"✅ Mock audio generated: {audio_obj.id}")
-        
-        # Step 4: Create project
-        project_obj = VideoProject(
-            original_prompt=request.prompt,
-            duration=request.duration,
-            script_id=script_id,
-            image_ids=[img.id for img in images_response["images"]],
-            status="mock_testing"
-        )
-        
-        await db.projects.insert_one(project_obj.dict())
-        logger.info(f"✅ Mock project created: {project_obj.id}")
-        
-        # Step 5: Test video assembly with mock data
-        try:
-            video_base64 = await assemble_video(
-                project_id=project_obj.id,
-                images=images_response["images"],
-                audio_base64=mock_audio_data,
-                script_text=script_response.script_text,
-                duration=30.0
-            )
-            logger.info(f"✅ Mock video assembled: {len(video_base64)} chars")
-            
-            # Save video result
-            video_result = VideoAssemblyResult(
-                project_id=project_obj.id,
-                video_base64=video_base64,
-                duration=30.0
-            )
-            
-            await db.videos.insert_one(video_result.dict())
-            
-            return {
-                "status": "mock_test_success",
-                "project_id": project_obj.id,
-                "script": script_response,
-                "images_count": len(images_response["images"]),
-                "audio_duration": 30.0,
-                "video_size": len(video_base64),
-                "message": "Pipeline mock test completed successfully. Ready for real API testing."
-            }
-            
-        except Exception as video_error:
-            logger.error(f"Video assembly failed: {str(video_error)}")
-            return {
-                "status": "mock_test_partial",
-                "project_id": project_obj.id,
-                "script": script_response,
-                "images_count": len(images_response["images"]),
-                "audio_duration": 30.0,
-                "video_error": str(video_error),
-                "message": "Script and images work, video assembly needs fixing."
-            }
-        
-    except Exception as e:
-        logger.error(f"Error in mock pipeline test: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Mock pipeline test failed: {str(e)}")
-
 @api_router.post("/generate-voice")
-async def generate_voice(script_id: str, use_real_api: bool = False):
+async def generate_voice(script_id: str):
     """Generate voice narration from script using ElevenLabs"""
     try:
         # Get script from database
@@ -554,32 +362,6 @@ async def generate_voice(script_id: str, use_real_api: bool = False):
             raise HTTPException(status_code=404, detail="Script not found")
 
         script_obj = GeneratedScript(**script_data)
-        
-        # Use mock data if specified or if not using real API
-        if USE_MOCK_DATA and not use_real_api:
-            logger.info("Using mock data for voice generation")
-            
-            # Create mock audio object
-            audio_obj = GeneratedAudio(
-                script_id=script_id,
-                audio_base64=get_mock_audio_data(),
-                voice_id="mock_french_voice",
-                duration=len(script_obj.script_text) * 0.1  # Rough estimate
-            )
-            
-            await db.audio.insert_one(audio_obj.dict())
-            
-            return {
-                "audio_id": audio_obj.id,
-                "script_id": script_id,
-                "voice_id": "mock_french_voice",
-                "duration": audio_obj.duration,
-                "audio_base64": audio_obj.audio_base64,
-                "message": "Mock audio generated successfully"
-            }
-        
-        # Real ElevenLabs implementation
-        logger.info("Using real ElevenLabs API for voice generation")
         
         # Initialize ElevenLabs client
         client = await get_elevenlabs_client()
@@ -652,7 +434,7 @@ async def generate_voice(script_id: str, use_real_api: bool = False):
                 "voice_id": selected_voice_id,
                 "duration": duration,
                 "audio_base64": audio_base64,
-                "message": "Real ElevenLabs audio generated successfully"
+                "message": "ElevenLabs audio generated successfully"
             }
             
         except Exception as tts_error:
@@ -696,32 +478,6 @@ async def generate_images(script_id: str):
 
         script_obj = GeneratedScript(**script_data)
         
-        if USE_MOCK_DATA:
-            # Use mock data for testing
-            logger.info("Using mock data for image generation")
-            generated_images = []
-            
-            for i, scene in enumerate(script_obj.scenes):
-                # Create mock image object
-                image_obj = GeneratedImage(
-                    prompt=f"Style charbon artistique dramatique: {scene}",
-                    image_base64=get_mock_image_data(),
-                    scene_description=scene
-                )
-                
-                await db.images.insert_one(image_obj.dict())
-                generated_images.append(image_obj)
-            
-            return {
-                "script_id": script_id,
-                "images": generated_images,
-                "total_generated": len(generated_images)
-            }
-        
-        # Original OpenAI implementation
-        # Initialize OpenAI Image Generation  
-        image_gen = OpenAIImageGeneration(api_key=OPENAI_API_KEY)
-        
         generated_images = []
         
         for i, scene in enumerate(script_obj.scenes):
@@ -732,93 +488,18 @@ async def generate_images(script_id: str):
             Composition cinématographique, éclairage contrasté, détails texturés."""
             
             try:
-                # Use direct OpenAI API call since emergentintegrations library has issues
-                import httpx
+                # Use OpenAI Images API
+                response = await openai_client.images.generate(
+                    model="dall-e-3",
+                    prompt=charcoal_prompt,
+                    size="1024x1024",
+                    quality="standard",
+                    response_format="b64_json",
+                    n=1
+                )
                 
-                headers = {
-                    'Authorization': f'Bearer {OPENAI_API_KEY}',
-                    'Content-Type': 'application/json'
-                }
-                
-                # Try gpt-image-1 first, fallback to dall-e-3 if 403 error
-                image_base64 = ""
-                
-                try:
-                    # Try gpt-image-1 first (without response_format parameter)
-                    payload = {
-                        "model": "gpt-image-1",
-                        "prompt": charcoal_prompt,
-                        "n": 1,
-                        "size": "1024x1024"
-                    }
-                    
-                    async with httpx.AsyncClient(timeout=60.0) as client:
-                        response = await client.post(
-                            'https://api.openai.com/v1/images/generations',
-                            headers=headers,
-                            json=payload
-                        )
-                        
-                        if response.status_code == 403:
-                            logger.info(f"gpt-image-1 requires verification, falling back to dall-e-3")
-                            # Fallback to dall-e-3 (with response_format parameter)
-                            payload = {
-                                "model": "dall-e-3",
-                                "prompt": charcoal_prompt,
-                                "n": 1,
-                                "size": "1024x1024",
-                                "response_format": "b64_json"
-                            }
-                            response = await client.post(
-                                'https://api.openai.com/v1/images/generations',
-                                headers=headers,
-                                json=payload
-                            )
-                        elif response.status_code == 400 and "response_format" in response.text:
-                            logger.info(f"gpt-image-1 doesn't support response_format, falling back to dall-e-3")
-                            # Fallback to dall-e-3 (with response_format parameter)
-                            payload = {
-                                "model": "dall-e-3",
-                                "prompt": charcoal_prompt,
-                                "n": 1,
-                                "size": "1024x1024",
-                                "response_format": "b64_json"
-                            }
-                            response = await client.post(
-                                'https://api.openai.com/v1/images/generations',
-                                headers=headers,
-                                json=payload
-                            )
-                        
-                        if response.status_code == 200:
-                            data = response.json()
-                            if data.get('data') and len(data['data']) > 0:
-                                # Handle different response formats
-                                first_image = data['data'][0]
-                                if 'b64_json' in first_image:
-                                    image_base64 = first_image['b64_json']
-                                elif 'url' in first_image:
-                                    # If we get URL instead of base64, we need to download it
-                                    image_url = first_image['url']
-                                    img_response = await client.get(image_url)
-                                    if img_response.status_code == 200:
-                                        image_base64 = base64.b64encode(img_response.content).decode('utf-8')
-                                    else:
-                                        logger.error(f"Failed to download image from URL for scene {i}")
-                                        continue
-                                else:
-                                    logger.error(f"No b64_json or url in OpenAI response for scene {i}")
-                                    continue
-                            else:
-                                logger.error(f"No image data in OpenAI response for scene {i}")
-                                continue
-                        else:
-                            logger.error(f"OpenAI API error for scene {i}: {response.status_code} - {response.text}")
-                            continue
-                
-                except Exception as api_error:
-                    logger.error(f"Direct OpenAI API call failed for scene {i}: {str(api_error)}")
-                    continue
+                # Extract base64 image data
+                image_base64 = response.data[0].b64_json
                 
                 # Validate base64 data
                 if not image_base64 or len(image_base64) < 100:
