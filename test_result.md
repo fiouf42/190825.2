@@ -179,7 +179,7 @@ backend:
 
   - task: "OpenAI Image Generation integration (gpt-image-1)"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
