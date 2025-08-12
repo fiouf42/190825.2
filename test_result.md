@@ -230,7 +230,7 @@ backend:
 
   - task: "API endpoints for video project creation"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
