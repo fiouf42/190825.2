@@ -299,7 +299,7 @@ backend:
 
   - task: "Complete video pipeline endpoint"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 3
     priority: "high"
