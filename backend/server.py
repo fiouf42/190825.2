@@ -80,12 +80,20 @@ if not ELEVENLABS_API_KEY:
 
 # Initialize clients with error handling
 try:
-    openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
-    logger.info("OpenAI client initialized successfully")
+    # Create custom httpx client to avoid proxies parameter issue
+    import httpx
+    custom_client = httpx.AsyncClient(timeout=60.0)
+    openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=custom_client)
+    logger.info("OpenAI client initialized successfully with custom httpx client")
 except Exception as e:
-    logger.error(f"Error initializing OpenAI client: {e}")
-    # Try with minimal parameters
-    openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+    logger.error(f"Error initializing OpenAI client with custom client: {e}")
+    try:
+        # Fallback: try with minimal parameters
+        openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        logger.info("OpenAI client initialized with minimal parameters")
+    except Exception as e2:
+        logger.error(f"Failed to initialize OpenAI client: {e2}")
+        raise e2
 
 # Voice models - we'll try to find Nicolas voice or use a good French male voice
 FRENCH_VOICE_ID = "pNInz6obpgDQGcFmaJgB"  # Adam - male English (we'll update this after testing)
