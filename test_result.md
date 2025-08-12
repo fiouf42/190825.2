@@ -245,9 +245,9 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "Fixed ObjectId serialization bug by converting ObjectIds to strings before JSON response"
-      - working: false
+      - working: true
         agent: "testing"
-        comment: "❌ BLOCKED: All video project endpoints fail due to invalid OpenAI API key. The endpoints are correctly implemented but depend on script and image generation which require valid OpenAI credentials."
+        comment: "✅ CONFIRMED WORKING: All video project endpoints now functional with new API keys. Script generation, image generation, and database operations working correctly. ObjectId serialization bug previously fixed. All endpoints responding properly with valid OpenAI credentials."
 
   - task: "ElevenLabs voice integration and available voices endpoint"
     implemented: true
