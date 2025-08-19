@@ -329,6 +329,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "🎉 COMPLETE PIPELINE FULLY FUNCTIONAL (January 2025)! ✅ CRITICAL FIX: Installed missing FFmpeg system package - resolved 'No such file or directory: ffmpeg' error. ✅ ALL COMPONENTS WORKING: Script generation (GPT-4.1, 1045+ chars, 5 scenes), Image generation (DALL-E-3, 5 images, 2.75MB+ each), Voice generation (ElevenLabs, 104.5s audio, 1.7MB base64), Video assembly (FFmpeg, TikTok format 1080x1920). ✅ NEW API KEYS CONFIRMED: OpenAI API key (sk-proj-jbXlbIg3B1lTg2jOy_gcZyn7pm87MaFm9uhXpviL4MrBqFP3aDiUcVNYTzoPRZBe6S-b3X0ECUT3BlbkFJO4ZREDvJnRycTLzqcUgKEozJutHIsZ0gabhxFb36S-PnnIkx-GZ7IEwSM9BFULicUl6YbH0i_oA) and ElevenLabs API key (sk_0ac8438144cbed68081b6b1bca798a1a81738fb00b5dac8d) are FULLY WORKING. 🚀 PRODUCTION READY: Complete end-to-end TikTok video generation pipeline operational."
+      - working: "NA"
+        agent: "main"
+        comment: "FIXES APPLIQUÉES: 1) Ajouté voice_id au VideoGenerationRequest et generate_voice(), 2) Amélioré logs et gestion d'erreur avec traceback complet, 3) Frontend envoie maintenant voice_id sélectionnée, 4) Validation obligatoire sélection voix, 5) Installé module 'distro' manquant. Corrections pour résoudre 'Error creating complete video:'. Nécessite test complet."
 
 frontend:
   - task: "React UI with prompt input and duration slider"
