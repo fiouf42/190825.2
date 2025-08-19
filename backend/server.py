@@ -631,7 +631,7 @@ async def create_complete_video(request: VideoGenerationRequest):
         images_response = await generate_images(script_id)
         
         # Step 3: Generate voice
-        voice_response = await generate_voice(script_id)
+        voice_response = await generate_voice(script_id, request.voice_id)
         
         # Step 4: Create project
         project_obj = VideoProject(
