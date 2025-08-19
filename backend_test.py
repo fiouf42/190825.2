@@ -19,6 +19,7 @@ class TikTokBackendTester:
         self.session = None
         self.test_results = {}
         self.script_id = None
+        self.project_id = None
         
     async def __aenter__(self):
         self.session = aiohttp.ClientSession(
