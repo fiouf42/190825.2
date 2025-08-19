@@ -12,7 +12,7 @@ import time
 from datetime import datetime
 
 # Backend URL from frontend environment
-BACKEND_URL = "https://content-forge-79.preview.emergentagent.com/api"
+BACKEND_URL = "https://prompt-to-video-18.preview.emergentagent.com/api"
 
 class TikTokBackendTester:
     def __init__(self):
