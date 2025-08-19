@@ -376,6 +376,8 @@ metadata:
 test_plan:
   current_focus:
     - "Complete video pipeline endpoint"
+    - "Voice ID parameter integration"
+    - "Error handling improvements"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
