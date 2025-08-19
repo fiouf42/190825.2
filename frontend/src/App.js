@@ -66,7 +66,8 @@ function App() {
       
       const response = await axios.post(`${API}/create-complete-video`, {
         prompt: prompt.trim(),
-        duration: duration
+        duration: duration,
+        voice_id: selectedVoice
       });
 
       setProject(response.data);
