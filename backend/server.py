@@ -37,6 +37,7 @@ api_router = APIRouter(prefix="/api")
 class VideoGenerationRequest(BaseModel):
     prompt: str
     duration: int = Field(default=30, ge=15, le=60)  # 15-60 seconds for TikTok
+    voice_id: str = Field(default="pNInz6obpgDQGcFmaJgB")  # Default voice ID
 
 class GeneratedScript(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
