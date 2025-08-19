@@ -305,6 +305,48 @@ class TikTokBackendTester:
             self.log_test(test_name, False, f"Exception: {str(e)}", duration)
             return False
     
+    async def test_project_retrieval(self):
+        """Test GET /api/project/{id} - Project retrieval"""
+        test_name = "Project Retrieval (GET /api/project/{id})"
+        start_time = time.time()
+        
+        if not self.project_id:
+            self.log_test(test_name, False, "No project_id available from previous test", 0)
+            return False
+        
+        try:
+            async with self.session.get(f"{BACKEND_URL}/project/{self.project_id}") as response:
+                duration = time.time() - start_time
+                
+                if response.status == 200:
+                    data = await response.json()
+                    required_sections = ["project", "script", "images"]
+                    
+                    if all(section in data for section in required_sections):
+                        project_data = data["project"]
+                        script_data = data["script"]
+                        images_data = data["images"]
+                        
+                        project_status = project_data.get("status", "unknown")
+                        script_length = len(script_data.get("script_text", "")) if script_data else 0
+                        image_count = len(images_data) if images_data else 0
+                        
+                        self.log_test(test_name, True, f"Project retrieved: Status {project_status}, Script {script_length} chars, {image_count} images", duration)
+                        return True
+                    else:
+                        missing_sections = [s for s in required_sections if s not in data]
+                        self.log_test(test_name, False, f"Status: {response.status}, Missing sections: {missing_sections}", duration)
+                        return False
+                else:
+                    error_text = await response.text()
+                    self.log_test(test_name, False, f"Status: {response.status}, Error: {error_text}", duration)
+                    return False
+                    
+        except Exception as e:
+            duration = time.time() - start_time
+            self.log_test(test_name, False, f"Exception: {str(e)}", duration)
+            return False
+    
     async def run_all_tests(self):
         """Run all backend tests in sequence"""
         print("🚀 Starting TikTok Video Generator Backend Testing")
