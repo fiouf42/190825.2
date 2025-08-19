@@ -201,7 +201,7 @@ function App() {
 
               <button
                 onClick={generateCompleteVideo}
-                disabled={loading || !prompt.trim()}
+                disabled={loading || !prompt.trim() || !selectedVoice}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-8 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 {loading ? (
