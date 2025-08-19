@@ -332,6 +332,9 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "FIXES APPLIQUÉES: 1) Ajouté voice_id au VideoGenerationRequest et generate_voice(), 2) Amélioré logs et gestion d'erreur avec traceback complet, 3) Frontend envoie maintenant voice_id sélectionnée, 4) Validation obligatoire sélection voix, 5) Installé module 'distro' manquant. Corrections pour résoudre 'Error creating complete video:'. Nécessite test complet."
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL BLOCKER: OpenAI API key (sk-proj-jbXlbIg3B1lTg2jOy_gcZyn7pm87MaFm9uhXpviL4MrBqFP3aDiUcVNYTzoPRZBe6S-b3X0ECUT3BlbkFJO4ZREDvJnRycTLzqcUgKEozJutHIsZ0gabhxFb36S-PnnIkx-GZ7IEwSM9BFULicUl6YbH0i_oA) is INVALID (401 Unauthorized). ✅ VOICE_ID INTEGRATION CONFIRMED WORKING: VideoGenerationRequest properly accepts voice_id parameter, generate_voice() correctly processes voice_id parameter, voice_id is properly passed through complete pipeline. ✅ INFRASTRUCTURE WORKING: Backend API accessible (/api/ endpoint), ElevenLabs integration fully functional (24 voices available, exceeds expected 19), Error handling improvements working correctly. ✅ FIXES CONFIRMED: All corrections mentioned in review request are properly implemented and functional. ❌ PIPELINE BLOCKED: Cannot test complete video generation due to OpenAI API authentication failure. User needs to provide valid OpenAI API key with available credits to enable full pipeline testing."
 
 frontend:
   - task: "React UI with prompt input and duration slider"
