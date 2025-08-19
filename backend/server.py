@@ -623,17 +623,26 @@ async def assemble_final_video(project_id: str):
 async def create_complete_video(request: VideoGenerationRequest):
     """Complete pipeline: script -> images -> voice -> video assembly"""
     try:
+        logger.info(f"Starting complete video generation for prompt: {request.prompt[:50]}...")
+        
         # Step 1: Generate script
+        logger.info("Step 1: Generating script...")
         script_response = await generate_script(request)
         script_id = script_response.id
+        logger.info(f"Script generated successfully: {script_id}")
         
         # Step 2: Generate images
+        logger.info("Step 2: Generating images...")
         images_response = await generate_images(script_id)
+        logger.info(f"Images generated successfully: {len(images_response['images'])} images")
         
         # Step 3: Generate voice
+        logger.info(f"Step 3: Generating voice with voice_id: {request.voice_id}...")
         voice_response = await generate_voice(script_id, request.voice_id)
+        logger.info(f"Voice generated successfully: {voice_response['audio_id']}")
         
         # Step 4: Create project
+        logger.info("Step 4: Creating project object...")
         project_obj = VideoProject(
             original_prompt=request.prompt,
             duration=request.duration,
@@ -643,9 +652,12 @@ async def create_complete_video(request: VideoGenerationRequest):
         )
         
         await db.projects.insert_one(project_obj.dict())
+        logger.info(f"Project created successfully: {project_obj.id}")
         
         # Step 5: Assemble final video
+        logger.info("Step 5: Assembling final video...")
         video_response = await assemble_final_video(project_obj.id)
+        logger.info(f"Video assembled successfully: {video_response['video_id']}")
         
         return {
             "project_id": project_obj.id,
@@ -665,9 +677,18 @@ async def create_complete_video(request: VideoGenerationRequest):
             "status": "completed"
         }
         
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         logger.error(f"Error creating complete video: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error creating complete video: {str(e)}")
+        logger.error(f"Full traceback: {error_details}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error creating complete video: {str(e)}. Check server logs for more details."
+        )
 
 @api_router.post("/create-video-project", response_model=VideoProject)
 async def create_video_project(request: VideoGenerationRequest):
