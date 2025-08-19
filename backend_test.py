@@ -242,14 +242,27 @@ class TikTokBackendTester:
             return False
     
     async def test_complete_video_pipeline(self):
-        """Test POST /api/create-complete-video - Complete pipeline test"""
+        """Test POST /api/create-complete-video - Complete pipeline test with voice_id"""
         test_name = "Complete Video Pipeline (POST /api/create-complete-video)"
         start_time = time.time()
         
+        # Get first available voice ID for the test
+        first_voice_id = "pNInz6obpgDQGcFmaJgB"  # Default fallback
+        try:
+            async with self.session.get(f"{BACKEND_URL}/voices/available") as response:
+                if response.status == 200:
+                    voices_data = await response.json()
+                    if "voices" in voices_data and len(voices_data["voices"]) > 0:
+                        first_voice_id = voices_data["voices"][0]["voice_id"]
+                        print(f"   Using first available voice for complete pipeline: {voices_data['voices'][0]['name']} ({first_voice_id})")
+        except Exception as e:
+            print(f"   Warning: Could not fetch voices for pipeline, using default: {e}")
+        
         try:
             payload = {
-                "prompt": "conseils révisions efficaces pour examens",
-                "duration": 25
+                "prompt": "astuces productivité pour étudiants universitaires",
+                "duration": 30,
+                "voice_id": first_voice_id
             }
             
             async with self.session.post(
@@ -268,10 +281,14 @@ class TikTokBackendTester:
                         script_length = len(data["script"]["script_text"])
                         image_count = len(data["images"])
                         audio_duration = data["audio"]["duration"]
+                        audio_voice_id = data["audio"]["voice_id"]
                         video_base64_length = len(data["video"]["video_base64"])
                         video_resolution = data["video"]["resolution"]
                         
-                        self.log_test(test_name, True, f"Complete pipeline success: Project {project_id}, Script {script_length} chars, {image_count} images, Audio {audio_duration:.1f}s, Video {video_base64_length} chars ({video_resolution})", duration)
+                        self.log_test(test_name, True, f"Complete pipeline success: Project {project_id}, Script {script_length} chars, {image_count} images, Audio {audio_duration:.1f}s (voice: {audio_voice_id}), Video {video_base64_length} chars ({video_resolution})", duration)
+                        
+                        # Store project_id for retrieval test
+                        self.project_id = project_id
                         return True
                     else:
                         missing_sections = [s for s in required_sections if s not in data]
