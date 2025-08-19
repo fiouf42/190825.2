@@ -375,7 +375,7 @@ async def generate_script(request: VideoGenerationRequest):
         raise HTTPException(status_code=500, detail=f"Error generating script: {str(e)}")
 
 @api_router.post("/generate-voice")
-async def generate_voice(script_id: str):
+async def generate_voice(script_id: str, voice_id: str = "pNInz6obpgDQGcFmaJgB"):
     """Generate voice narration from script using ElevenLabs"""
     try:
         # Get script from database
@@ -388,24 +388,21 @@ async def generate_voice(script_id: str):
         # Initialize ElevenLabs client
         client = await get_elevenlabs_client()
         
-        # First, let's get available voices to find Nicolas or a French male voice
+        # Use the provided voice_id directly
+        selected_voice_id = voice_id
+        logger.info(f"Using voice ID: {selected_voice_id}")
+        
+        # Validate voice exists by checking available voices
         try:
             voices = await client.voices.get_all()
-            logger.info(f"Available voices: {[voice.name for voice in voices.voices]}")
-            
-            # Look for Nicolas voice or suitable French male voice
-            selected_voice_id = FRENCH_VOICE_ID
-            for voice in voices.voices:
-                if "nicolas" in voice.name.lower():
-                    selected_voice_id = voice.voice_id
-                    logger.info(f"Found Nicolas voice: {voice.voice_id}")
-                    break
-                elif "french" in voice.name.lower() and "male" in voice.name.lower():
-                    selected_voice_id = voice.voice_id
-                    logger.info(f"Found French male voice: {voice.name} - {voice.voice_id}")
-                    break
+            voice_names = {voice.voice_id: voice.name for voice in voices.voices}
+            if selected_voice_id in voice_names:
+                logger.info(f"Voice validated: {voice_names[selected_voice_id]} ({selected_voice_id})")
+            else:
+                logger.warning(f"Voice ID {selected_voice_id} not found, using default")
+                selected_voice_id = "pNInz6obpgDQGcFmaJgB"  # Default fallback
         except Exception as voice_error:
-            logger.warning(f"Could not fetch voices: {voice_error}, using default voice")
+            logger.warning(f"Could not validate voice: {voice_error}, proceeding with provided voice_id")
         
         # Generate audio from script text
         try:
