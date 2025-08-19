@@ -46,6 +46,11 @@ function App() {
       return;
     }
 
+    if (!selectedVoice) {
+      setError("Veuillez sélectionner une voix");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setProject(null);
@@ -75,7 +80,19 @@ function App() {
       
     } catch (err) {
       console.error("Error:", err);
-      setError(err.response?.data?.detail || "Erreur lors de la génération de la vidéo");
+      // Améliorer l'affichage d'erreur avec plus de détails
+      const errorMessage = err.response?.data?.detail || 
+                          err.message || 
+                          "Erreur lors de la génération de la vidéo";
+      
+      // Log plus détaillé pour le débogage
+      console.error("Error details:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message
+      });
+      
+      setError(errorMessage);
       setGenerationStep("");
     } finally {
       setLoading(false);
