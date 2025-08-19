@@ -1,46 +1,52 @@
 {
   "summary": {
-    "passed": 5,
-    "total": 6,
-    "success_rate": 0.8333333333333334,
-    "timestamp": "2025-08-12T12:45:24.663560"
+    "passed": 2,
+    "total": 7,
+    "success_rate": 0.2857142857142857,
+    "timestamp": "2025-08-19T12:37:35.912422"
   },
   "detailed_results": {
     "Health Check (GET /api/)": {
       "success": true,
       "details": "Status: 200, Message: TikTok Video Generator API",
-      "duration": 0.10600638389587402,
-      "timestamp": "2025-08-12T12:42:22.489242"
+      "duration": 0.10399675369262695,
+      "timestamp": "2025-08-19T12:37:35.211594"
     },
     "Available Voices (GET /api/voices/available)": {
       "success": true,
-      "details": "Retrieved 19 voices. Sample: ['Aria', 'Sarah', 'Laura']",
-      "duration": 0.11036181449890137,
-      "timestamp": "2025-08-12T12:42:22.600270"
+      "details": "Retrieved 24 voices. Sample: ['Rachel', 'Clyde', 'Aria']",
+      "duration": 0.20975971221923828,
+      "timestamp": "2025-08-19T12:37:35.421539"
     },
     "Script Generation (POST /api/generate-script)": {
-      "success": true,
-      "details": "Script generated: 1045 chars, 5 scenes, ID: 37ef5616-d57e-4add-91e8-3645b65accf3",
-      "duration": 13.76168441772461,
-      "timestamp": "2025-08-12T12:42:36.362181"
+      "success": false,
+      "details": "Status: 500, Error: {\"detail\":\"Error generating script: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************i_oA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}\"}",
+      "duration": 0.26125407218933105,
+      "timestamp": "2025-08-19T12:37:35.682923"
     },
     "Image Generation (POST /api/generate-images)": {
-      "success": true,
-      "details": "Generated 5 images, first image: 2750160 chars base64",
-      "duration": 64.6190710067749,
-      "timestamp": "2025-08-12T12:43:41.209871"
+      "success": false,
+      "details": "No script_id available from previous test",
+      "duration": 0,
+      "timestamp": "2025-08-19T12:37:35.682970"
     },
     "Voice Generation (POST /api/generate-voice)": {
-      "success": true,
-      "details": "Voice generated: 104.5s duration, 1739328 chars base64, voice: pNInz6obpgDQGcFmaJgB",
-      "duration": 16.918222188949585,
-      "timestamp": "2025-08-12T12:43:58.163114"
+      "success": false,
+      "details": "No script_id available from previous test",
+      "duration": 0,
+      "timestamp": "2025-08-19T12:37:35.682981"
     },
     "Complete Video Pipeline (POST /api/create-complete-video)": {
       "success": false,
-      "details": "Status: 500, Error: {\"detail\":\"Error creating complete video: \"}",
-      "duration": 86.50008368492126,
-      "timestamp": "2025-08-12T12:45:24.663391"
+      "details": "Status: 500, Error: {\"detail\":\"Error generating script: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************i_oA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}\"}",
+      "duration": 0.22911524772644043,
+      "timestamp": "2025-08-19T12:37:35.912188"
+    },
+    "Project Retrieval (GET /api/project/{id})": {
+      "success": false,
+      "details": "No project_id available from previous test",
+      "duration": 0,
+      "timestamp": "2025-08-19T12:37:35.912241"
     }
   }
 }
