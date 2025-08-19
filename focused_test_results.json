@@ -1,0 +1,11 @@
+{
+  "status": "partial_success",
+  "timestamp": "2025-08-19T12:39:06.336939",
+  "detailed_results": {
+    "api_health": true,
+    "elevenlabs_voices": true,
+    "openai_script": false,
+    "voice_id_integration": false,
+    "error_handling": false
+  }
+}
