@@ -190,7 +190,7 @@ class TikTokBackendTester:
             return False
     
     async def test_generate_voice(self):
-        """Test POST /api/generate-voice - ElevenLabs voice generation"""
+        """Test POST /api/generate-voice - ElevenLabs voice generation with voice_id"""
         test_name = "Voice Generation (POST /api/generate-voice)"
         start_time = time.time()
         
@@ -198,9 +198,21 @@ class TikTokBackendTester:
             self.log_test(test_name, False, "No script_id available from previous test", 0)
             return False
         
+        # Get first available voice ID
+        first_voice_id = "pNInz6obpgDQGcFmaJgB"  # Default fallback
+        try:
+            async with self.session.get(f"{BACKEND_URL}/voices/available") as response:
+                if response.status == 200:
+                    voices_data = await response.json()
+                    if "voices" in voices_data and len(voices_data["voices"]) > 0:
+                        first_voice_id = voices_data["voices"][0]["voice_id"]
+                        print(f"   Using first available voice: {voices_data['voices'][0]['name']} ({first_voice_id})")
+        except Exception as e:
+            print(f"   Warning: Could not fetch voices, using default: {e}")
+        
         try:
             async with self.session.post(
-                f"{BACKEND_URL}/generate-voice?script_id={self.script_id}",
+                f"{BACKEND_URL}/generate-voice?script_id={self.script_id}&voice_id={first_voice_id}",
                 headers={"Content-Type": "application/json"}
             ) as response:
                 duration = time.time() - start_time
