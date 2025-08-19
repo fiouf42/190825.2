@@ -360,7 +360,8 @@ class TikTokBackendTester:
             ("Script Generation", self.test_generate_script),
             ("Image Generation", self.test_generate_images),
             ("Voice Generation", self.test_generate_voice),
-            ("Complete Pipeline", self.test_complete_video_pipeline)
+            ("Complete Pipeline", self.test_complete_video_pipeline),
+            ("Project Retrieval", self.test_project_retrieval)
         ]
         
         passed = 0
